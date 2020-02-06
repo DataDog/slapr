@@ -5,19 +5,6 @@ on:
   pull_request_review:
     types: [submitted]
 
-#jobs:
-#  apply:
-#    runs-on: ubuntu-latest
-#    steps:
-#    - uses: DataDog/hackadog-slapr@master
-#      env:
-#        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-#        GITHUB_REPO: DataDog/hackadog-slapr
-#        SLACK_CHANNEL_ID: CTMRQMGVB
-#        SLACK_API_TOKEN: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"
-#        # TODO: document how to obtain this user ID, or automate its retrieval.
-#        SLAPR_BOT_USER_ID: UTMS06TPX
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -42,3 +29,10 @@ jobs:
       run: |
         python --version
         python main.py
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        GITHUB_REPO: DataDog/hackadog-slapr
+        SLACK_CHANNEL_ID: CTMRQMGVB
+        SLACK_API_TOKEN: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"
+        # TODO: document how to obtain this user ID, or automate its retrieval.
+        SLAPR_BOT_USER_ID: UTMS06TPX
