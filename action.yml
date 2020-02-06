@@ -1,0 +1,5 @@
+name: 'Hack-A-Dog Slapr'
+description: 'Add emoji on Slack posts on PR updates'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
