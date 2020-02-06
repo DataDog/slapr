@@ -56,7 +56,9 @@ def main() -> None:
     existing_emojis = slack.get_emojis(timestamp=timestamp, channel_id=settings.SLACK_CHANNEL_ID)
     print(f"Existing emojis: {', '.join(existing_emojis)}")
 
-    new_emojis = {review_emoji, settings.EMOJI_REVIEW_STARTED}
+    new_emojis = {settings.EMOJI_REVIEW_STARTED}
+    if review_emoji:
+        new_emojis.add(review_emoji)
 
     if review_emoji is None:
         emojis_to_add = new_emojis
