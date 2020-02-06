@@ -31,6 +31,7 @@ def find_timestamp_of_review_requested_message(
 def get_emojis(timestamp: str, channel_id: str) -> Set[str]:
     response = client.reactions_list(channel=channel_id, timestamp=timestamp)
     assert response["ok"]
+    print(f"get_emojis {response=}")
     reactions: List[dict] = response["reactions"] or []
     return {reaction["name"] for reaction in reactions}
 
