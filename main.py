@@ -1,11 +1,14 @@
 import os
-import sys
+import json
 
 
 def main() -> None:
     print("Hello, world!")
-    print(f"{sys.argv=}")
-    print(f"{os.environ=}")
+
+    with open(os.environ["GITHUB_EVENT_PATH"]) as f:
+        event: dict = json.load(f)
+
+    print(event)
 
 
 if __name__ == "__main__":
