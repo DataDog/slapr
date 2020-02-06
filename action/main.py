@@ -59,7 +59,7 @@ def main() -> None:
     new_emojis = {review_emoji, settings.EMOJI_REVIEW_STARTED}
 
     if review_emoji is None:
-        emojis_to_add = set()  # type: ignore
+        emojis_to_add = new_emojis
         emojis_to_remove = existing_emojis
     else:
         emojis_to_add, emojis_to_remove = diff_emojis(new_emojis, existing_emojis=existing_emojis)
