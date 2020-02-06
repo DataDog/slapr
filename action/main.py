@@ -42,10 +42,6 @@ def main() -> None:
     reviews = github.get_pr_reviews(pr_number=pr_number)
     emoji = get_emoji_for_reviews(reviews)
 
-    if emoji is None:
-        print(f"No emoji found for {reviews=}")
-        return
-
     pr_url: str = event["pull_request"]["html_url"]
     print(f"{pr_url=}")
     timestamp = slack.find_timestamp_of_review_requested_message(
@@ -60,7 +56,12 @@ def main() -> None:
     emojis = slack.get_emojis(timestamp=timestamp, channel_id=settings.SLACK_CHANNEL_ID)
     print(f"Existing emojis: {emojis}")
 
-    emojis_to_add, emojis_to_remove = diff_emojis(emoji, emojis=emojis)
+    if emoji is None:
+        emojis_to_add = set()  # type: ignore
+        emojis_to_remove = emojis
+    else:
+        emojis_to_add, emojis_to_remove = diff_emojis(emoji, emojis=emojis)
+
     print(f"{emojis_to_add=}")
     print(f"{emojis_to_remove=}")
 
