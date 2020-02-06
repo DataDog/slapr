@@ -24,8 +24,8 @@ def diff_emojis(emoji: str, emojis: Set[str]) -> Tuple[Set[str], Set[str]]:
 def main() -> None:
     event = github.read_event()
 
-    pr_id: int = event["pull_request"]["id"]
-    states = github.get_pr_review_states(pr_id=pr_id)
+    pr_number: int = event["pull_request"]["number"]
+    states = github.get_pr_review_states(pr_number=pr_number)
     emoji = get_emoji_for_review_states(states)
 
     if emoji is None:
