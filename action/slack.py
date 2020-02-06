@@ -1,4 +1,4 @@
-from typing import Optional, Set
+from typing import List, Optional, Set
 
 import slack
 
@@ -31,7 +31,8 @@ def find_timestamp_of_review_requested_message(
 def get_emojis(timestamp: str, channel_id: str) -> Set[str]:
     response = client.reactions_list(channel=channel_id, timestamp=timestamp)
     assert response["ok"]
-    return {reaction["name"] for reaction in response["reactions"]}
+    reactions: List[dict] = response["reactions"] or []
+    return {reaction["name"] for reaction in reactions}
 
 
 def add_reaction(timestamp: str, emoji: str, channel_id: str) -> None:
