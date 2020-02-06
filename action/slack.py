@@ -29,11 +29,20 @@ def find_timestamp_of_review_requested_message(
 
 
 def get_emojis(timestamp: str, channel_id: str) -> Set[str]:
-    response = client.reactions_list(channel=channel_id, timestamp=timestamp)
+    response = client.reactions_get(channel=channel_id, timestamp=timestamp)
     assert response["ok"]
-    print(f"get_emojis {dict(response)=}")
-    reactions: List[dict] = response["reactions"] or []
-    return {reaction["name"] for reaction in reactions}
+
+    if response["type"] != "message":
+        return set()
+
+    reactions: List[dict] = response["message"]["reactions"]
+    print(f"{reactions=}")
+
+    return {
+        reaction["name"]
+        for reaction in reactions
+        if settings.SLAPR_BOT_USER_ID in reaction["users"]
+    }
 
 
 def add_reaction(timestamp: str, emoji: str, channel_id: str) -> None:

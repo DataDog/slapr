@@ -15,3 +15,5 @@ jobs:
         GITHUB_REPO: DataDog/hackadog-slapr
         SLACK_CHANNEL_ID: CTMRQMGVB
         SLACK_API_TOKEN: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"
+        # TODO: document how to obtain this user ID, or automate its retrieval.
+        SLAPR_BOT_USER_ID: UTMS06TPX
