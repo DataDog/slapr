@@ -9,6 +9,6 @@ jobs:
   apply:
     runs-on: ubuntu-latest
     steps:
-    - uses: DataDog/hackadog-slapr@hello-world
+    - uses: DataDog/hackadog-slapr@v2
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
