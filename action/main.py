@@ -43,18 +43,18 @@ def main() -> None:
     emoji = get_emoji_for_reviews(reviews)
 
     pr_url: str = event["pull_request"]["html_url"]
-    print(f"{pr_url=}")
+    print(f"Event PR: {pr_url}")
     timestamp = slack.find_timestamp_of_review_requested_message(
         pr_url=pr_url, channel_id=settings.SLACK_CHANNEL_ID
     )
-    print(f"{timestamp=}")
+    print(f"Slack message timestamp: {timestamp}")
 
     if timestamp is None:
-        print(f"No message found requesting review for {pr_url=!r}")
+        print(f"No message found requesting review for PR: {pr_url}")
         return
 
     emojis = slack.get_emojis(timestamp=timestamp, channel_id=settings.SLACK_CHANNEL_ID)
-    print(f"Existing emojis: {emojis}")
+    print(f"Existing emojis: {', '.join(emojis)}")
 
     if emoji is None:
         emojis_to_add = set()  # type: ignore
@@ -62,17 +62,15 @@ def main() -> None:
     else:
         emojis_to_add, emojis_to_remove = diff_emojis(emoji, emojis=emojis)
 
-    print(f"{emojis_to_add=}")
-    print(f"{emojis_to_remove=}")
+    print(f"Emojis to add    : {', '.join(emojis_to_add)}")
+    print(f"Emojis to remove : {', '.join(emojis_to_remove)}")
 
     for emoji in emojis_to_add:
-        print(f"Adding {emoji=!r}")
         slack.add_reaction(
             timestamp=timestamp, emoji=emoji, channel_id=settings.SLACK_CHANNEL_ID
         )
 
     for emoji in emojis_to_remove:
-        print(f"Removing {emoji=!r}")
         slack.remove_reaction(
             timestamp=timestamp, emoji=emoji, channel_id=settings.SLACK_CHANNEL_ID
         )
