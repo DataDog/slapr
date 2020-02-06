@@ -11,5 +11,7 @@ jobs:
     steps:
     - uses: DataDog/hackadog-slapr@master
       env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        GITHUB_REPO: DataDog/hackadog-slapr
         SLACK_CHANNEL_ID: CTMRQMGVB
         SLACK_API_TOKEN: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"

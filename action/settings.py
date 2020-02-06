@@ -1,13 +1,11 @@
 import os
 
 GITHUB_EVENT_PATH = os.environ["GITHUB_EVENT_PATH"]
-
-# TODO: Make these configurable.
-SLACK_STATE_TO_EMOJI = {
-    "commented": "speech_balloon",
-    "approved": "white_check_mark",
-    "changes_requested": "pencil2",
-}
+GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
+GITHUB_REPO = os.environ["GITHUB_REPO"]
 
 SLACK_API_TOKEN = os.environ["SLACK_API_TOKEN"]
 SLACK_CHANNEL_ID = os.environ["SLACK_CHANNEL_ID"]
+
+EMOJI_READY_TO_MERGE = "white_check_mark"
+EMOJI_NEEDS_CHANGES = "pencil2"

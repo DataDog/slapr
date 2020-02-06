@@ -1,1 +1,2 @@
 slackclient==2.5.*
+pygithub==1.45.*
