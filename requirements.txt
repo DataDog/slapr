@@ -1,1 +1,1 @@
-httpx==0.11.*
+slackclient==2.5.*

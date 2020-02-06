@@ -1,4 +1,4 @@
-# https://github.com/DataDog/slapr
+# https://github.com/DataDog/hackadog-slapr
 
 name: Slack emoji PR updates
 on:
@@ -11,4 +11,5 @@ jobs:
     steps:
     - uses: DataDog/hackadog-slapr@master
       env:
-        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        SLACK_CHANNEL_ID: CTMRQMGVB
+        SLACK_API_TOKEN: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"

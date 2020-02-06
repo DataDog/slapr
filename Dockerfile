@@ -1,7 +1,9 @@
 FROM python:3.8
 
-COPY main.py requirements.txt /
-
+COPY requirements.txt /
 RUN pip install -r /requirements.txt
+
+COPY main.py /
+COPY action/ /action/
 
 ENTRYPOINT [ "python", "/main.py" ]
