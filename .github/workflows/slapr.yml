@@ -5,15 +5,28 @@ on:
   pull_request_review:
     types: [submitted]
 
+#jobs:
+#  apply:
+#    runs-on: ubuntu-latest
+#    steps:
+#    - uses: DataDog/hackadog-slapr@master
+#      env:
+#        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+#        GITHUB_REPO: DataDog/hackadog-slapr
+#        SLACK_CHANNEL_ID: CTMRQMGVB
+#        SLACK_API_TOKEN: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"
+#        # TODO: document how to obtain this user ID, or automate its retrieval.
+#        SLAPR_BOT_USER_ID: UTMS06TPX
+
 jobs:
-  apply:
+  build:
     runs-on: ubuntu-latest
     steps:
-    - uses: DataDog/hackadog-slapr@master
-      env:
-        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        GITHUB_REPO: DataDog/hackadog-slapr
-        SLACK_CHANNEL_ID: CTMRQMGVB
-        SLACK_API_TOKEN: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"
-        # TODO: document how to obtain this user ID, or automate its retrieval.
-        SLAPR_BOT_USER_ID: UTMS06TPX
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    # You can test your matrix by printing the current Python version
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
