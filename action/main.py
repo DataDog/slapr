@@ -47,9 +47,11 @@ def main() -> None:
         return
 
     pr_url: str = event["pull_request"]["html_url"]
+    print(f"{pr_url=}")
     timestamp = slack.find_timestamp_of_review_requested_message(
         pr_url=pr_url, channel_id=settings.SLACK_CHANNEL_ID
     )
+    print(f"{timestamp=}")
 
     if timestamp is None:
         print(f"No message found requesting review for {pr_url=!r}")

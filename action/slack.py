@@ -35,8 +35,7 @@ def get_emojis(timestamp: str, channel_id: str) -> Set[str]:
     if response["type"] != "message":
         return set()
 
-    reactions: List[dict] = response["message"]["reactions"]
-    print(f"{reactions=}")
+    reactions: List[dict] = response["message"].get("reactions", [])
 
     return {
         reaction["name"]
