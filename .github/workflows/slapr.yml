@@ -28,7 +28,7 @@ jobs:
     - name: Run Slapr
       run: |
         python --version
-        python main.py
+        python src/main.py
       env:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         GITHUB_REPO: DataDog/hackadog-slapr
