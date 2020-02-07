@@ -3,8 +3,6 @@ from typing import List, NamedTuple
 
 from github import Github
 
-from . import settings
-
 
 class Review(NamedTuple):
     state: str
@@ -12,6 +10,7 @@ class Review(NamedTuple):
 
 
 class PullRequest(NamedTuple):
+    state: str
     merged: bool
     mergeable_state: str
 
@@ -28,22 +27,22 @@ class GithubBackend:
 
 
 class WebGithubBackend(GithubBackend):
-    def __init__(self, gh: Github) -> None:
+    def __init__(self, gh: Github, event_path: str, repo: str) -> None:
         self._gh = gh
+        self.event_path = event_path
+        self.repo = repo
 
     def read_event(self) -> dict:
-        with open(settings.GITHUB_EVENT_PATH) as f:
+        with open(self.event_path) as f:
             return json.load(f)
 
     def get_pr_reviews(self, pr_number: int) -> List[Review]:
-        repo = settings.GITHUB_REPO
-        reviews = self._gh.get_repo(repo).get_pull(pr_number).get_reviews()
+        reviews = self._gh.get_repo(self.repo).get_pull(pr_number).get_reviews()
         return [Review(state=review.state.lower(), username=review.user.login) for review in reviews]
 
     def get_pr(self, pr_number: int) -> PullRequest:
-        repo = settings.GITHUB_REPO
-        pr = self._gh.get_repo(repo).get_pull(pr_number)
-        return PullRequest(merged=pr.merged, mergeable_state=pr.mergeable_state)
+        pr = self._gh.get_repo(self.repo).get_pull(pr_number)
+        return PullRequest(state=pr.state, merged=pr.merged, mergeable_state=pr.mergeable_state)
 
 
 class GithubClient:
