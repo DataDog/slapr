@@ -31,7 +31,7 @@ def find_timestamp_of_review_requested_message(pr_url: str, channel_id: str) -> 
         # https://github.com/owner/repo/pull/6/s
         url = match.group("url")
 
-        if not url.startswith("pr_url"):
+        if not url.startswith(pr_url):
             continue
 
         return message["ts"]
