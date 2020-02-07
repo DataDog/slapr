@@ -17,13 +17,13 @@ class PullRequest(NamedTuple):
 
 class GithubBackend:
     def read_event(self) -> dict:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def get_pr_reviews(self, pr_number: int) -> List[Review]:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def get_pr(self, pr_number: int) -> PullRequest:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
 
 class WebGithubBackend(GithubBackend):

@@ -72,9 +72,25 @@ class MockGithubBackend(GithubBackend):
             {"test_review_started"},
             id="comment",
         ),
+        pytest.param(
+            [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
+            [Review(state="changes_requested", username="alice"), Review(state="approved", username="alice")],
+            [Reaction(emoji="test_needs_change", user_ids=["U1234"])],
+            {"test_review_started", "test_approved"},
+            id="approved-from-changes-requested",
+        ),
+        pytest.param(
+            [Message(text="Need :eyes: but I've got no PR URL", timestamp="yyyy-mm-dd")],
+            [Review(state="approved", username="alice")],
+            [],
+            set(),
+            id="message-not-found",
+        ),
     ],
 )
-def test_slapr(messages: List[Message], reviews: List[Review], reactions: List[Reaction], expected_emojis: set) -> None:
+def test_on_pull_request_review(
+    messages: List[Message], reviews: List[Review], reactions: List[Reaction], expected_emojis: set
+) -> None:
     slack_backend = MockSlackBackend(messages=messages, target_message=messages[0], reactions=reactions)
     github_backend = MockGithubBackend(
         reviews=reviews,
@@ -91,6 +107,48 @@ def test_slapr(messages: List[Message], reviews: List[Review], reactions: List[R
         emoji_approved="test_approved",
         emoji_needs_change="test_needs_change",
         emoji_merged="test_merged",
+    )
+    slapr.main(config)
+
+    assert slack_backend.emojis == expected_emojis
+
+
+@pytest.mark.parametrize(
+    "event, pr, reactions, expected_emojis",
+    [
+        pytest.param(
+            {"pull_request": {"number": 42, "html_url": "https://github.com/example/repo/pull/42"}},
+            PullRequest(state="closed", merged=True, mergeable_state="clean"),
+            [Reaction(emoji="test_approved", user_ids=["U1234"])],
+            {"test_review_started", "test_approved", "test_merged"},
+            id="merge-approved-pr",
+        ),
+        pytest.param(
+            {"pull_request": {"number": 42, "html_url": "https://github.com/example/repo/pull/42"}},
+            PullRequest(state="closed", merged=False, mergeable_state="clean"),
+            [Reaction(emoji="test_approved", user_ids=["U1234"])],
+            {"test_review_started", "test_approved", "test_closed"},
+            id="merge-approved-pr",
+        ),
+    ],
+)
+def test_on_pull_request(event: dict, pr: PullRequest, reactions: List[Reaction], expected_emojis: set) -> None:
+    messages = [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")]
+    reviews = [Review(state="approved", username="alice")]
+
+    slack_backend = MockSlackBackend(messages=messages, target_message=messages[0], reactions=reactions)
+    github_backend = MockGithubBackend(reviews=reviews, event=event, pr=pr,)
+
+    config = Config(
+        slack_client=SlackClient(backend=slack_backend),
+        github_client=GithubClient(backend=github_backend),
+        slack_channel_id="C1234",
+        slapr_bot_user_id="U1234",
+        emoji_review_started="test_review_started",
+        emoji_approved="test_approved",
+        emoji_needs_change="test_needs_change",
+        emoji_merged="test_merged",
+        emoji_closed="test_closed",
     )
     slapr.main(config)
 

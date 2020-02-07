@@ -16,16 +16,16 @@ class Reaction(NamedTuple):
 
 class SlackBackend:
     def get_latest_messages(self, channel_id: str) -> List[Message]:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def get_reactions(self, timestamp: str, channel_id: str) -> List[Reaction]:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def add_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def remove_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
 
 class WebSlackBackend(SlackBackend):
