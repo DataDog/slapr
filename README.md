@@ -5,3 +5,5 @@ Add emoji on Slack posts on PR updates
 
 - Handle merge events
 - Add tests
+
+CHANGED
