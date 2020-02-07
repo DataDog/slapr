@@ -10,10 +10,10 @@ On `pull_request_review` or `pull_request` events Slapr will update your slack p
 
 | emoji | description |
 | ----- | ----------- |
-|`EMOJI_REVIEW_STARTED`|The PR has at least one review has been made.|
-|`EMOJI_APPROVED`|The PR is approved and ready to be merged.|
-|`EMOJI_NEEDS_CHANGES`|Changes are requested for the PR.|
-|`EMOJI_MERGED`|The PR is merged.|
+|`EMOJI_REVIEW_STARTED`|The PR has at least one review has been made.|  
+|`EMOJI_APPROVED`|The PR is approved and ready to be merged.|  
+|`EMOJI_NEEDS_CHANGES`|Changes are requested for the PR.|  
+|`EMOJI_MERGED`|The PR is merged.|  
 |`EMOJI_CLOSED`|The PR is closed.|
 
 
@@ -39,3 +39,4 @@ jobs:
         SLACK_API_TOKEN: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"
         SLAPR_BOT_USER_ID: UTMS06TPX
 ```
+
