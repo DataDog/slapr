@@ -6,6 +6,14 @@ Add Pull Requests status emojis to Slack posts.
 
 On `pull_request_review` or `pull_request` events Slapr will update your slack posts with suitable emojis.
 
+## Requirements
+
+Slack API Token with following permissions
+
+- `channels:history`
+- `reactions:read`
+- `reactions:write`
+
 ## Emoji status
 
 | emoji | description |
