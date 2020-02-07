@@ -6,7 +6,7 @@ on:
     types: [submitted]
 
 jobs:
-  build:
+  run_slapr:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
