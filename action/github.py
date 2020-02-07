@@ -2,6 +2,7 @@ import json
 from typing import List, NamedTuple
 
 from github import Github
+from github.PullRequest import PullRequest
 
 from . import settings
 
@@ -25,3 +26,8 @@ def get_pr_reviews(pr_number: int) -> List[Review]:
         Review(state=review.state.lower(), username=review.user.login)
         for review in reviews
     ]
+
+
+def get_pr(pr_number: int) -> PullRequest:
+    repo = settings.GITHUB_REPO
+    return gh.get_repo(repo).get_pull(pr_number)
