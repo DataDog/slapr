@@ -15,3 +15,4 @@ class Config(NamedTuple):
     emoji_approved: str = "approved"
     emoji_needs_change: str = "needs_change"
     emoji_merged: str = "merged"
+    emoji_closed: str = "closed"

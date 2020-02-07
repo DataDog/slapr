@@ -40,6 +40,8 @@ def main(config: Config) -> None:
 
     if pr.merged:
         new_emojis.add(config.emoji_merged)
+    elif pr.state == 'closed':
+        new_emojis.add(config.emoji_closed)
 
     # Add emojis
     emojis_to_add, emojis_to_remove = emojis.diff(new_emojis=new_emojis, existing_emojis=existing_emojis)

@@ -67,7 +67,7 @@ class SlackClient:
         messages = self._backend.get_latest_messages(channel_id=channel_id)
 
         for message in messages:
-            match = re.match(self.pr_url_pattern, message.text.lower())
+            match = re.search(self.pr_url_pattern, message.text.lower())
 
             if match is None:
                 continue
