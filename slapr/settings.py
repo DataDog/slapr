@@ -12,7 +12,7 @@ SLAPR_BOT_USER_ID = os.environ["SLAPR_BOT_USER_ID"]
 SLAPR_SEARCH_PATTERN = r"(:eyes:|rev)\s+<(?P<url>.*)>"
 
 EMOJI_REVIEW_STARTED = "review_started"
-EMOJI_READY_TO_MERGE = "approved"
+EMOJI_APPROVED = "approved"
 EMOJI_NEEDS_CHANGES = "change_requested"
 EMOJI_MERGED = "merged"
 EMOJI_CLOSED = "closed"

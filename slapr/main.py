@@ -20,7 +20,7 @@ def get_emoji_for_reviews(reviews: List[github.Review]) -> Optional[str]:
         return settings.EMOJI_NEEDS_CHANGES
 
     if "approved" in unique_states:
-        return settings.EMOJI_READY_TO_MERGE
+        return settings.EMOJI_APPROVED
 
     return None
 
