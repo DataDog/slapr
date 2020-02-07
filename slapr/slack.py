@@ -1,3 +1,4 @@
+import re
 from typing import List, Optional, Set
 
 import slack
@@ -19,8 +20,8 @@ def find_timestamp_of_review_requested_message(pr_url: str, channel_id: str) -> 
     messages = response["messages"]
 
     for message in filter(lambda m: m["type"] == "message", messages):
-        # TODO: Make less strict.
-        if f":eyes: <{pr_url}>" in message.get("text", ""):
+        m = message.get("text")
+        if m and re.match(settings.SLAPR_SEARCH_PATTERN, m.lower()):
             return message["ts"]
 
     return None

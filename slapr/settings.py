@@ -9,6 +9,8 @@ SLACK_CHANNEL_ID = os.environ["SLACK_CHANNEL_ID"]
 
 SLAPR_BOT_USER_ID = os.environ["SLAPR_BOT_USER_ID"]
 
+SLAPR_SEARCH_PATTERN = r'(:eyes:|rev)\s*<[^<>]*>'
+
 EMOJI_REVIEW_STARTED = "review_started"
 EMOJI_READY_TO_MERGE = "approved"
 EMOJI_NEEDS_CHANGES = "change_requested"
