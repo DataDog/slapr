@@ -12,7 +12,7 @@ On `pull_request_review` or `pull_request` events Slapr will update your slack p
 | ----- | ----------- |
 |`EMOJI_REVIEW_STARTED`|The PR has at least one review has been made.|
 |`EMOJI_APPROVED`|The PR is approved and ready to be merged.|
-|`EMOJI_NEEDS_CHANGES`|Changes are requested for the PR.cccccchkrebvucubbvcbki|
+|`EMOJI_NEEDS_CHANGES`|Changes are requested for the PR.|
 |`EMOJI_MERGED`|The PR is merged.|
 |`EMOJI_CLOSED`|The PR is closed.|
 
