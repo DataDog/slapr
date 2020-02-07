@@ -20,8 +20,9 @@ def find_timestamp_of_review_requested_message(pr_url: str, channel_id: str) -> 
     messages = response["messages"]
 
     for message in filter(lambda m: m["type"] == "message", messages):
-        m = message.get("text")
-        if m and re.match(settings.SLAPR_SEARCH_PATTERN, m.lower()):
+        text = message.get("text")
+        pattern = settings.SLAPR_SEARCH_PATTERN.format(pr_url=pr_url)
+        if text and re.match(pattern, text.lower()):
             return message["ts"]
 
     return None
