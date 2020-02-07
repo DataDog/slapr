@@ -11,8 +11,8 @@ class Config(NamedTuple):
     slack_channel_id: str
     slapr_bot_user_id: str
 
-    emoji_review_started: str = "review_started"
-    emoji_approved: str = "approved"
-    emoji_needs_change: str = "needs_change"
-    emoji_merged: str = "merged"
-    emoji_closed: str = "closed"
+    emoji_review_started: str
+    emoji_approved: str
+    emoji_needs_change: str
+    emoji_merged: str
+    emoji_closed: str

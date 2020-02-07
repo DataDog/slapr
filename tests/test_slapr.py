@@ -107,6 +107,7 @@ def test_on_pull_request_review(
         emoji_approved="test_approved",
         emoji_needs_change="test_needs_change",
         emoji_merged="test_merged",
+        emoji_closed="test_closed",
     )
     slapr.main(config)
 

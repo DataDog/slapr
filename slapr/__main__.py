@@ -23,6 +23,7 @@ config = Config(
     emoji_approved="approved",
     emoji_needs_change="change_requested",
     emoji_merged="merged",
+    emoji_closed="closed",
 )
 
 main(config)
