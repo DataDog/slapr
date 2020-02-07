@@ -12,3 +12,4 @@ SLAPR_BOT_USER_ID = os.environ["SLAPR_BOT_USER_ID"]
 EMOJI_REVIEW_STARTED = "review_started"
 EMOJI_READY_TO_MERGE = "approved"
 EMOJI_NEEDS_CHANGES = "change_requested"
+EMOJI_MERGED = "merged"

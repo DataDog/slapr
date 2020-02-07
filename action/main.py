@@ -39,6 +39,7 @@ def main() -> None:
     event = github.read_event()
 
     pr_number: int = event["pull_request"]["number"]
+    pr = github.get_pr(pr_number=pr_number)
     reviews = github.get_pr_reviews(pr_number=pr_number)
     review_emoji = get_emoji_for_reviews(reviews)
 
@@ -56,15 +57,20 @@ def main() -> None:
     existing_emojis = slack.get_emojis(timestamp=timestamp, channel_id=settings.SLACK_CHANNEL_ID)
     print(f"Existing emojis: {', '.join(existing_emojis)}")
 
+    # Review emoji
     new_emojis = {settings.EMOJI_REVIEW_STARTED}
     if review_emoji:
         new_emojis.add(review_emoji)
 
-    if review_emoji is None:
-        emojis_to_add = new_emojis
-        emojis_to_remove = existing_emojis
-    else:
-        emojis_to_add, emojis_to_remove = diff_emojis(new_emojis, existing_emojis=existing_emojis)
+    # PR emoji
+    print(f'Is merged: {pr.merged}')
+    print(f'Megeable state: {pr.mergeable_state}')
+
+    if pr.merged:
+        new_emojis.add(settings.EMOJI_MERGED)
+
+    # Add emojis
+    emojis_to_add, emojis_to_remove = diff_emojis(new_emojis=new_emojis, existing_emojis=existing_emojis)
 
     print(f"Emojis to add    : {', '.join(emojis_to_add)}")
     print(f"Emojis to remove : {', '.join(emojis_to_remove)}")
