@@ -5,15 +5,11 @@ from . import github, settings, slack
 
 
 def get_emoji_for_reviews(reviews: List[github.Review]) -> Optional[str]:
-    reviews_without_comments = [
-        review for review in reviews if review.state != "commented"
-    ]
+    reviews_without_comments = [review for review in reviews if review.state != "commented"]
 
     reviews_by_author = {
         username: list(reviews)
-        for username, reviews in itertools.groupby(
-            reviews_without_comments, key=lambda review: review.username
-        )
+        for username, reviews in itertools.groupby(reviews_without_comments, key=lambda review: review.username)
     }
 
     last_reviews = [reviews[-1] for reviews in reviews_by_author.values() if reviews]
@@ -45,9 +41,7 @@ def main() -> None:
 
     pr_url: str = event["pull_request"]["html_url"]
     print(f"Event PR: {pr_url}")
-    timestamp = slack.find_timestamp_of_review_requested_message(
-        pr_url=pr_url, channel_id=settings.SLACK_CHANNEL_ID
-    )
+    timestamp = slack.find_timestamp_of_review_requested_message(pr_url=pr_url, channel_id=settings.SLACK_CHANNEL_ID)
     print(f"Slack message timestamp: {timestamp}")
 
     if timestamp is None:
@@ -63,8 +57,8 @@ def main() -> None:
         new_emojis.add(review_emoji)
 
     # PR emoji
-    print(f'Is merged: {pr.merged}')
-    print(f'Mergeable state: {pr.mergeable_state}')
+    print(f"Is merged: {pr.merged}")
+    print(f"Mergeable state: {pr.mergeable_state}")
 
     if pr.merged:
         new_emojis.add(settings.EMOJI_MERGED)
@@ -77,10 +71,10 @@ def main() -> None:
 
     for review_emoji in emojis_to_add:
         slack.add_reaction(
-            timestamp=timestamp, emoji=review_emoji, channel_id=settings.SLACK_CHANNEL_ID
+            timestamp=timestamp, emoji=review_emoji, channel_id=settings.SLACK_CHANNEL_ID,
         )
 
     for review_emoji in emojis_to_remove:
         slack.remove_reaction(
-            timestamp=timestamp, emoji=review_emoji, channel_id=settings.SLACK_CHANNEL_ID
+            timestamp=timestamp, emoji=review_emoji, channel_id=settings.SLACK_CHANNEL_ID,
         )
