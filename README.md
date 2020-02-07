@@ -18,12 +18,11 @@ Slack API Token with following permissions
 
 | emoji | description |
 | ----- | ----------- |
-|`EMOJI_REVIEW_STARTED`|The PR has at least one review has been made.|  
-|`EMOJI_APPROVED`|The PR is approved and ready to be merged.|  
-|`EMOJI_NEEDS_CHANGES`|Changes are requested for the PR.|  
-|`EMOJI_MERGED`|The PR is merged.|  
+|`EMOJI_REVIEW_STARTED`|The PR has at least one review has been made.|
+|`EMOJI_APPROVED`|The PR is approved and ready to be merged.|
+|`EMOJI_NEEDS_CHANGES`|Changes are requested for the PR.|
+|`EMOJI_MERGED`|The PR is merged.|
 |`EMOJI_CLOSED`|The PR is closed.|
-
 
 ## Example Usage
 
