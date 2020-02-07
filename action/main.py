@@ -64,7 +64,7 @@ def main() -> None:
 
     # PR emoji
     print(f'Is merged: {pr.merged}')
-    print(f'Megeable state: {pr.mergeable_state}')
+    print(f'Mergeable state: {pr.mergeable_state}')
 
     if pr.merged:
         new_emojis.add(settings.EMOJI_MERGED)
