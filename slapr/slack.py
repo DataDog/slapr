@@ -23,6 +23,7 @@ def find_timestamp_of_review_requested_message(pr_url: str, channel_id: str) -> 
         text = message.get("text", "")
         print("Text to match: {}".format(text.lower()))
         match = re.match(settings.SLAPR_SEARCH_PATTERN, text.lower())
+        print("match: {}".format(match))
 
         if match is None:
             continue
