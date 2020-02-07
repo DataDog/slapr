@@ -62,6 +62,8 @@ def main() -> None:
 
     if pr.merged:
         new_emojis.add(settings.EMOJI_MERGED)
+    elif pr.state == 'closed':
+        new_emojis.add(settings.EMOJI_CLOSED)
 
     # Add emojis
     emojis_to_add, emojis_to_remove = diff_emojis(new_emojis=new_emojis, existing_emojis=existing_emojis)
