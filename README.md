@@ -6,20 +6,14 @@ Add Pull Requests status emojis to Slack posts.
 
 On `pull_request_review` or `pull_request` events Slapr will update your slack posts with suitable emojis.
 
-## Slack posts pattern
+## Slack posts
 
-Slack posts should match this pattern: `:eyes:` or `rev` followed by a `space` and the PR URL
-
-```
-(:eyes:|rev)\s+<PR_URL>`
-```
+Slack posts should contain the PR URL.
 
 Examples:
 
 - Blabla Need Review for :eyes: https://github.com/DataDog/integrations-core/pull/5746/s
 - Blabla Need Review for rev https://github.com/DataDog/integrations-core/pull/5746/s
-
-Note: There is a [pending PR](https://github.com/DataDog/slapr/issues/21) to make this pattern configurable 
 
 ## Requirements
 

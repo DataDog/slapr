@@ -52,7 +52,7 @@ class MockGithubBackend(GithubBackend):
     "messages, reviews, reactions, expected_emojis",
     [
         pytest.param(
-            [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
+            [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
             [Review(state="approved", username="alice")],
             [],
             {"test_review_started", "test_approved"},
