@@ -3,7 +3,7 @@ from typing import List, NamedTuple, Optional, Set
 
 import slack
 
-URL_PATTERN = r"<(?P<url>.*)>"
+PR_URL_PATTERN = r"<(?P<url>.*)>"
 
 
 class Message(NamedTuple):
@@ -61,15 +61,14 @@ class WebSlackBackend(SlackBackend):
 
 
 class SlackClient:
-    def __init__(self, pr_url_pattern: str = URL_PATTERN, *, backend: SlackBackend) -> None:
-        self.pr_url_pattern = pr_url_pattern
+    def __init__(self, *, backend: SlackBackend) -> None:
         self._backend = backend
 
     def find_timestamp_of_review_requested_message(self, pr_url: str, channel_id: str) -> Optional[str]:
         messages = self._backend.get_latest_messages(channel_id=channel_id)
 
         for message in messages:
-            match = re.search(self.pr_url_pattern, message.text)
+            match = re.search(PR_URL_PATTERN, message.text)
 
             if match is None:
                 continue
