@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name="hackadog-slapr",
+    name="slapr",
     description="Add emoji on Slack posts on PR updates",
     version="0.0.0",
     packages=["slapr"],

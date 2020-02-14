@@ -9,7 +9,7 @@ class Config(NamedTuple):
     github_client: GithubClient
 
     slack_channel_id: str
-    slapr_bot_user_id: str
+    slapr_bot_user_id: str  # TODO: document how to obtain this user ID, or automate its retrieval.
 
     emoji_review_started: str
     emoji_approved: str

@@ -14,16 +14,16 @@ config = Config(
         backend=WebGithubBackend(
             gh=github.Github(os.environ["GITHUB_TOKEN"]),
             event_path=os.environ["GITHUB_EVENT_PATH"],
-            repo=os.environ["GITHUB_REPO"],
+            repo=os.environ["GITHUB_REPOSITORY"],
         )
     ),
     slack_channel_id=os.environ["SLACK_CHANNEL_ID"],
     slapr_bot_user_id=os.environ["SLAPR_BOT_USER_ID"],
-    emoji_review_started="review_started",
-    emoji_approved="approved",
-    emoji_needs_change="change_requested",
-    emoji_merged="merged",
-    emoji_closed="closed",
+    emoji_review_started=os.environ.get("SLAPR_EMOJI_REVIEW_STARTED", "review_started"),
+    emoji_approved=os.environ.get("SLAPR_EMOJI_APPROVED", "approved"),
+    emoji_needs_change=os.environ.get("SLAPR_EMOJI_CHANGE_REQUESTED", "change_requested"),
+    emoji_merged=os.environ.get("SLAPR_EMOJI_MERGED", "merged"),
+    emoji_closed=os.environ.get("SLAPR_EMOJI_CLOSED", "closed"),
 )
 
 main(config)

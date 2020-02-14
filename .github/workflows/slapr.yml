@@ -1,4 +1,4 @@
-# https://github.com/DataDog/hackadog-slapr
+# https://github.com/DataDog/slapr
 
 name: Slack emoji PR updates
 on:
@@ -11,11 +11,14 @@ jobs:
   run_slapr:
     runs-on: ubuntu-latest
     steps:
-    - uses: DataDog/hackadog-slapr@master
+    - uses: DataDog/slapr@master
       env:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        GITHUB_REPO: DataDog/hackadog-slapr
         SLACK_CHANNEL_ID: CTMRQMGVB
         SLACK_API_TOKEN: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"
-        # TODO: document how to obtain this user ID, or automate its retrieval.
         SLAPR_BOT_USER_ID: UTMS06TPX
+        SLAPR_EMOJI_REVIEW_STARTED: review_started
+        SLAPR_EMOJI_APPROVED: approved
+        SLAPR_EMOJI_CHANGE_REQUESTED: change_requested
+        SLAPR_EMOJI_MERGED: merged
+        SLAPR_EMOJI_CLOSED: closed

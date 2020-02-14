@@ -38,10 +38,10 @@ jobs:
   run_slapr:
     runs-on: ubuntu-latest
     steps:
-    - uses: DataDog/hackadog-slapr@master
+    - uses: DataDog/slapr@master
       env:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        GITHUB_REPO: DataDog/hackadog-slapr
+        GITHUB_REPO: DataDog/slapr
         SLACK_CHANNEL_ID: CTMRQMGVB
         SLACK_API_TOKEN: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"
         SLAPR_BOT_USER_ID: UTMS06TPX
