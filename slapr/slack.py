@@ -3,6 +3,8 @@ from typing import List, NamedTuple, Optional, Set
 
 import slack
 
+URL_PATTERN = r"<(?P<url>.*)>"
+
 
 class Message(NamedTuple):
     text: str
@@ -59,7 +61,7 @@ class WebSlackBackend(SlackBackend):
 
 
 class SlackClient:
-    def __init__(self, pr_url_pattern: str = r"(:eyes:|rev)\s+<(?P<url>.*)>", *, backend: SlackBackend) -> None:
+    def __init__(self, pr_url_pattern: str = URL_PATTERN, *, backend: SlackBackend) -> None:
         self.pr_url_pattern = pr_url_pattern
         self._backend = backend
 
