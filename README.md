@@ -15,8 +15,6 @@ Examples:
 - Blabla Need Review for :eyes: https://github.com/DataDog/integrations-core/pull/5746/s
 - Blabla Need Review for rev https://github.com/DataDog/integrations-core/pull/5746/s
 
-Note: There is a [pending PR](https://github.com/DataDog/slapr/issues/21) to make this pattern configurable 
-
 ## Requirements
 
 Slack API Token with following permissions
