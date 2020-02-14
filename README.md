@@ -8,7 +8,7 @@ On `pull_request_review` or `pull_request` events Slapr will update your slack p
 
 ## Slack posts
 
-Slack posts should the PR URL
+Slack posts should contain the PR URL.
 
 Examples:
 
