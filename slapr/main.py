@@ -8,6 +8,12 @@ def main(config: Config) -> None:
 
     event = github.read_event()
 
+    is_fork: bool = event["pull_request"]["head"]["repo"]["fork"]
+
+    if is_fork:
+        print(f"Fork PRs are not supported.")
+        return
+
     pr_number: int = event["pull_request"]["number"]
     pr = github.get_pr(pr_number=pr_number)
     reviews = github.get_pr_reviews(pr_number=pr_number)
@@ -17,6 +23,7 @@ def main(config: Config) -> None:
 
     pr_url: str = event["pull_request"]["html_url"]
     print(f"Event PR: {pr_url}")
+
     timestamp = slack.find_timestamp_of_review_requested_message(pr_url=pr_url, channel_id=config.slack_channel_id)
     print(f"Slack message timestamp: {timestamp}")
 
