@@ -17,6 +17,13 @@ def main(config: Config) -> None:
 
     pr_url: str = event["pull_request"]["html_url"]
     print(f"Event PR: {pr_url}")
+
+    is_fork: bool = event["pull_request"]["head"]["repo"]["fork"]
+
+    if is_fork:
+        print(f"Do not run on fork: {pr_url}")
+        return
+
     timestamp = slack.find_timestamp_of_review_requested_message(pr_url=pr_url, channel_id=config.slack_channel_id)
     print(f"Slack message timestamp: {timestamp}")
 
