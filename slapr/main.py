@@ -21,7 +21,7 @@ def main(config: Config) -> None:
     is_fork: bool = event["pull_request"]["head"]["repo"]["fork"]
 
     if is_fork:
-        print(f"Do not run on fork: {pr_url}")
+        print(f"Fork PRs are not supported.")
         return
 
     timestamp = slack.find_timestamp_of_review_requested_message(pr_url=pr_url, channel_id=config.slack_channel_id)
