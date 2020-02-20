@@ -1,3 +1,4 @@
+from slapr.emojis import sort_emojis
 from .config import Config
 from . import emojis
 
@@ -53,10 +54,12 @@ def main(config: Config) -> None:
     # Add emojis
     emojis_to_add, emojis_to_remove = emojis.diff(new_emojis=new_emojis, existing_emojis=existing_emojis)
 
-    print(f"Emojis to add    : {', '.join(emojis_to_add)}")
-    print(f"Emojis to remove : {', '.join(emojis_to_remove)}")
+    emojis_to_add_sorted = sort_emojis(config, emojis_to_add)
 
-    for review_emoji in emojis_to_add:
+    print(f"Emojis to add (ordered) : {', '.join(emojis_to_add_sorted)}")
+    print(f"Emojis to remove        : {', '.join(emojis_to_remove)}")
+
+    for review_emoji in emojis_to_add_sorted:
         slack.add_reaction(
             timestamp=timestamp, emoji=review_emoji, channel_id=config.slack_channel_id,
         )

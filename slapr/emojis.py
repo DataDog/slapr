@@ -2,6 +2,7 @@ from typing import List, Optional, Set, Tuple
 
 import itertools
 
+from slapr.config import Config
 from .github import Review
 
 
@@ -30,3 +31,15 @@ def diff(new_emojis: Set[str], existing_emojis: Set[str]) -> Tuple[Set[str], Set
     emojis_to_add = new_emojis - existing_emojis
     emojis_to_remove = existing_emojis - new_emojis
     return emojis_to_add, emojis_to_remove
+
+
+def sort_emojis(config: Config, emojis: Set[str]) -> List[str]:
+    order = [
+        config.emoji_review_started,
+        config.emoji_needs_change,
+        config.emoji_approved,
+        config.emoji_closed,
+        config.emoji_merged,
+    ]
+    order_dict = {v: i for i, v in enumerate(order)}
+    return sorted(list(emojis), key=lambda e: order_dict[e])
