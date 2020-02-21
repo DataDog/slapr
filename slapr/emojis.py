@@ -2,7 +2,7 @@ from typing import List, Optional, Set, Tuple
 
 import itertools
 
-from slapr.config import Config
+from .config import Config
 from .github import Review
 
 

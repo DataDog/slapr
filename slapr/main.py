@@ -1,4 +1,3 @@
-from slapr.emojis import sort_emojis
 from .config import Config
 from . import emojis
 
@@ -54,7 +53,7 @@ def main(config: Config) -> None:
     # Add emojis
     emojis_to_add, emojis_to_remove = emojis.diff(new_emojis=new_emojis, existing_emojis=existing_emojis)
 
-    emojis_to_add_sorted = sort_emojis(config, emojis_to_add)
+    emojis_to_add_sorted = emojis.sort_emojis(config, emojis_to_add)
 
     print(f"Emojis to add (ordered) : {', '.join(emojis_to_add_sorted)}")
     print(f"Emojis to remove        : {', '.join(emojis_to_remove)}")
