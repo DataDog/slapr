@@ -13,7 +13,7 @@ class MockSlackBackend(SlackBackend):
         self.messages = messages
         self.target_message = target_message
         self.reactions = reactions
-        self.emojis = {reaction.emoji for reaction in reactions}
+        self.emojis = [reaction.emoji for reaction in reactions]  # Retain order.
 
     def get_latest_messages(self, channel_id: str) -> List[Message]:
         return self.messages
@@ -23,10 +23,14 @@ class MockSlackBackend(SlackBackend):
 
     def add_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
         assert timestamp == self.target_message.timestamp
-        self.emojis.add(emoji)
+        if emoji in self.emojis:
+            raise RuntimeError(f"Emoji already present: {emoji!r}")  # Mimick behavior of real Slack.
+        self.emojis.append(emoji)
 
     def remove_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
         assert timestamp == self.target_message.timestamp
+        if emoji not in self.emojis:
+            return  # Mimick behavior of real Slack.
         self.emojis.remove(emoji)
 
 
@@ -68,35 +72,35 @@ MOCK_EVENT = {
             [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
             [Review(state="approved", username="alice")],
             [],
-            {"test_review_started", "test_approved"},
+            ["test_review_started", "test_approved"],
             id="approval",
         ),
         pytest.param(
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
             [Review(state="changes_requested", username="alice")],
             [],
-            {"test_review_started", "test_needs_change"},
+            ["test_review_started", "test_needs_change"],
             id="changes_requested",
         ),
         pytest.param(
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
             [Review(state="comment", username="alice")],
             [],
-            {"test_review_started"},
+            ["test_review_started"],
             id="comment",
         ),
         pytest.param(
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
             [Review(state="changes_requested", username="alice"), Review(state="approved", username="alice")],
             [Reaction(emoji="test_needs_change", user_ids=["U1234"])],
-            {"test_review_started", "test_approved"},
+            ["test_review_started", "test_approved"],
             id="approved-from-changes-requested",
         ),
         pytest.param(
             [Message(text="Need :eyes: but I've got no PR URL", timestamp="yyyy-mm-dd")],
             [Review(state="approved", username="alice")],
             [],
-            set(),
+            [],
             id="message-not-found",
         ),
     ],
@@ -133,15 +137,21 @@ def test_on_pull_request_review(
         pytest.param(
             MOCK_EVENT,
             PullRequest(state="closed", merged=True, mergeable_state="clean"),
-            [Reaction(emoji="test_approved", user_ids=["U1234"])],
-            {"test_review_started", "test_approved", "test_merged"},
+            [
+                Reaction(emoji="test_review_started", user_ids=["U1234"]),
+                Reaction(emoji="test_approved", user_ids=["U1234"]),
+            ],
+            ["test_review_started", "test_approved", "test_merged"],
             id="merge-approved-pr",
         ),
         pytest.param(
             MOCK_EVENT,
             PullRequest(state="closed", merged=False, mergeable_state="clean"),
-            [Reaction(emoji="test_approved", user_ids=["U1234"])],
-            {"test_review_started", "test_approved", "test_closed"},
+            [
+                Reaction(emoji="test_review_started", user_ids=["U1234"]),
+                Reaction(emoji="test_approved", user_ids=["U1234"]),
+            ],
+            ["test_review_started", "test_approved", "test_closed"],
             id="merge-approved-pr",
         ),
     ],
