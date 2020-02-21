@@ -34,6 +34,10 @@ def diff(new_emojis: Set[str], existing_emojis: Set[str]) -> Tuple[Set[str], Set
 
 
 def sort_emojis(config: Config, emojis: Set[str]) -> List[str]:
+    """
+    Sort emojis in a specific order.
+    The order below reflects the order of usual review process.
+    """
     order = [
         config.emoji_review_started,
         config.emoji_needs_change,
