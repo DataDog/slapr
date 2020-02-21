@@ -48,6 +48,19 @@ class MockGithubBackend(GithubBackend):
         return list(self.reviews)
 
 
+MOCK_EVENT = {
+    "pull_request": {
+        "number": 42,
+        "html_url": "https://github.com/example/repo/pull/42",
+        "head": {
+            "repo": {
+                "fork": False
+            }
+        }
+    }
+}
+
+
 @pytest.mark.parametrize(
     "messages, reviews, reactions, expected_emojis",
     [
@@ -94,7 +107,7 @@ def test_on_pull_request_review(
     slack_backend = MockSlackBackend(messages=messages, target_message=messages[0], reactions=reactions)
     github_backend = MockGithubBackend(
         reviews=reviews,
-        event={"pull_request": {"number": 42, "html_url": "https://github.com/example/repo/pull/42"}},
+        event=MOCK_EVENT,
         pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
     )
 
@@ -118,14 +131,14 @@ def test_on_pull_request_review(
     "event, pr, reactions, expected_emojis",
     [
         pytest.param(
-            {"pull_request": {"number": 42, "html_url": "https://github.com/example/repo/pull/42"}},
+            MOCK_EVENT,
             PullRequest(state="closed", merged=True, mergeable_state="clean"),
             [Reaction(emoji="test_approved", user_ids=["U1234"])],
             {"test_review_started", "test_approved", "test_merged"},
             id="merge-approved-pr",
         ),
         pytest.param(
-            {"pull_request": {"number": 42, "html_url": "https://github.com/example/repo/pull/42"}},
+            MOCK_EVENT,
             PullRequest(state="closed", merged=False, mergeable_state="clean"),
             [Reaction(emoji="test_approved", user_ids=["U1234"])],
             {"test_review_started", "test_approved", "test_closed"},
