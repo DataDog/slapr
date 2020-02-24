@@ -17,6 +17,8 @@ class Config(NamedTuple):
     emoji_merged: str
     emoji_closed: str
 
+    time_between_calls: int  # in milliseconds
+
     @property
     def emojis_by_review_step(self) -> Callable[[str], int]:
         """A key function for sorting emojis in the order of the usual review process.

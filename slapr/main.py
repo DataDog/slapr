@@ -1,3 +1,5 @@
+import time
+
 from .config import Config
 from . import emojis
 
@@ -62,6 +64,7 @@ def main(config: Config) -> None:
         slack.add_reaction(
             timestamp=timestamp, emoji=review_emoji, channel_id=config.slack_channel_id,
         )
+        time.sleep(config.time_between_calls)
 
     for review_emoji in emojis_to_remove:
         slack.remove_reaction(
