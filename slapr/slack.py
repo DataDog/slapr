@@ -35,7 +35,7 @@ class WebSlackBackend(SlackBackend):
         self._client = client
 
     def get_latest_messages(self, channel_id: str) -> List[Message]:
-        response = self._client.channels_history(channel=channel_id)
+        response = self._client.conversations_history(channel=channel_id)
         assert response["ok"]
         return [
             Message(text=message.get("text", ""), timestamp=message["ts"])
