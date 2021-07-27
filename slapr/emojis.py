@@ -12,6 +12,8 @@ def get_for_reviews(reviews: List[Review], emoji_needs_change: str, emoji_approv
         username: list(reviews)
         for username, reviews in itertools.groupby(reviews_without_comments, key=lambda review: review.username)
     }
+    
+    approvals = [review.state for review in reviews_without_comments].count("approved")
 
     last_reviews = [reviews[-1] for reviews in reviews_by_author.values() if reviews]
 
@@ -20,7 +22,7 @@ def get_for_reviews(reviews: List[Review], emoji_needs_change: str, emoji_approv
     if "changes_requested" in unique_states:
         return emoji_needs_change
 
-    if "approved" in unique_states:
+    if ("approved" in unique_states) and approvals > 1:
         return emoji_approved
 
     return None
