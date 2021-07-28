@@ -14,6 +14,8 @@ def get_for_reviews(reviews: List[Review], emoji_needs_change: str, emoji_approv
     }
     
     approvals = [review.state for review in reviews_without_comments].count("approved")
+    approvalsCount = approvals.count("approved")
+    print(approvals)
 
     last_reviews = [reviews[-1] for reviews in reviews_by_author.values() if reviews]
 
@@ -22,7 +24,7 @@ def get_for_reviews(reviews: List[Review], emoji_needs_change: str, emoji_approv
     if "changes_requested" in unique_states:
         return emoji_needs_change
 
-    if ("approved" in unique_states) and approvals > 1:
+    if ("approved" in unique_states) and approvalsCount > 1:
         return emoji_approved
 
     return None
