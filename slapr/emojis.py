@@ -13,7 +13,7 @@ def get_for_reviews(reviews: List[Review], emoji_needs_change: str, emoji_approv
         for username, reviews in itertools.groupby(reviews_without_comments, key=lambda review: review.username)
     }
     
-    approvals = [review.state for review in reviews_without_comments].count("approved")
+    approvals = [review.state for review in reviews_without_comments]
     approvalsCount = approvals.count("approved")
     print(approvals)
 
