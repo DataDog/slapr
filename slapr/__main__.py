@@ -19,11 +19,12 @@ config = Config(
     ),
     slack_channel_id=os.environ["SLACK_CHANNEL_ID"],
     slapr_bot_user_id=os.environ["SLAPR_BOT_USER_ID"],
+    number_of_approvals_required=max(1, int(os.environ.get("SLAPR_NUMBER_OF_APPROVALS_REQUIRED", 1))),
     emoji_review_started=os.environ.get("SLAPR_EMOJI_REVIEW_STARTED", "review_started"),
-    emoji_approved=os.environ.get("SLAPR_EMOJI_APPROVED", "tests-passed"),
+    emoji_approved=os.environ.get("SLAPR_EMOJI_APPROVED", "approved"),
     emoji_needs_change=os.environ.get("SLAPR_EMOJI_CHANGES_REQUESTED", "changes_requested"),
-    emoji_merged=os.environ.get("SLAPR_EMOJI_MERGED", "merged-purple"),
-    emoji_closed=os.environ.get("SLAPR_EMOJI_CLOSED", "rip"),
+    emoji_merged=os.environ.get("SLAPR_EMOJI_MERGED", "merged"),
+    emoji_closed=os.environ.get("SLAPR_EMOJI_CLOSED", "closed"),
 )
 
 main(config)

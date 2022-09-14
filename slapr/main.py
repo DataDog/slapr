@@ -18,7 +18,7 @@ def main(config: Config) -> None:
     pr = github.get_pr(pr_number=pr_number)
     reviews = github.get_pr_reviews(pr_number=pr_number)
     review_emoji = emojis.get_for_reviews(
-        reviews, emoji_needs_change=config.emoji_needs_change, emoji_approved=config.emoji_approved
+        reviews, emoji_needs_change=config.emoji_needs_change, emoji_approved=config.emoji_approved, number_of_approvals_required=config.number_of_approvals_required
     )
 
     pr_url: str = event["pull_request"]["html_url"]

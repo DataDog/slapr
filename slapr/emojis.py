@@ -5,7 +5,7 @@ import itertools
 from .github import Review
 
 
-def get_for_reviews(reviews: List[Review], emoji_needs_change: str, emoji_approved: str) -> Optional[str]:
+def get_for_reviews(reviews: List[Review], emoji_needs_change: str, emoji_approved: str, number_of_approvals_required: int) -> Optional[str]:
     reviews_without_comments = [review for review in reviews if review.state != "commented"]
 
     reviews_by_author = {
@@ -15,7 +15,6 @@ def get_for_reviews(reviews: List[Review], emoji_needs_change: str, emoji_approv
     
     approvals = [review.state for review in reviews_without_comments]
     approvalsCount = approvals.count("approved")
-    print(approvals)
 
     last_reviews = [reviews[-1] for reviews in reviews_by_author.values() if reviews]
 
@@ -24,7 +23,7 @@ def get_for_reviews(reviews: List[Review], emoji_needs_change: str, emoji_approv
     if "changes_requested" in unique_states:
         return emoji_needs_change
 
-    if ("approved" in unique_states) and approvalsCount > 1:
+    if ("approved" in unique_states) and approvalsCount >= number_of_approvals_required:
         return emoji_approved
 
     return None
