@@ -11,6 +11,8 @@ class Config(NamedTuple):
     slack_channel_id: str
     slapr_bot_user_id: str  # TODO: document how to obtain this user ID, or automate its retrieval.
 
+    number_of_approvals_required: int
+
     emoji_review_started: str
     emoji_approved: str
     emoji_needs_change: str
