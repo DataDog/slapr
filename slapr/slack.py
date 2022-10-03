@@ -3,7 +3,7 @@ from typing import List, NamedTuple, Optional, Set
 
 import slack
 
-PR_URL_PATTERN = r"(?P<url>https?://[^\s]+)"
+PR_URL_PATTERN = r"<(?P<url>.*)>"
 
 
 class Message(NamedTuple):
@@ -69,7 +69,7 @@ class SlackClient:
         print(f"Found messages: {len(messages)}")
         for message in messages:
             match = re.search(PR_URL_PATTERN, message.text)
-            print(f"Match message: {match}")
+            print(f"Match message: {match.string}")
 
             if match is None:
                 continue
