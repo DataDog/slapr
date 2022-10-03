@@ -66,9 +66,10 @@ class SlackClient:
 
     def find_timestamp_of_review_requested_message(self, pr_url: str, channel_id: str) -> Optional[str]:
         messages = self._backend.get_latest_messages(channel_id=channel_id)
-        print(f"Found messages: {messages}")
+        print(f"Found messages: {len(messages)}")
         for message in messages:
             match = re.search(PR_URL_PATTERN, message.text)
+            print(f"Match message: {match}")
 
             if match is None:
                 continue
