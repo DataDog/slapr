@@ -3,7 +3,7 @@ from typing import List, NamedTuple, Optional, Set
 
 import slack
 
-PR_URL_PATTERN = r"<(?P<url>.*)>"
+PR_URL_PATTERN = r"(?P<url>https?://[^\s]+)"
 
 
 class Message(NamedTuple):
