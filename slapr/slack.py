@@ -69,7 +69,6 @@ class SlackClient:
         print(f"Found messages: {len(messages)}")
         for message in messages:
             match = re.search(PR_URL_PATTERN, message.text)
-            print(f"Match message: {match.string}")
 
             if match is None:
                 continue
@@ -78,6 +77,8 @@ class SlackClient:
             # https://github.com/owner/repo/pull/6/files
             # https://github.com/owner/repo/pull/6/s
             url = match.group("url")
+
+            print(f"Match url: {url}")
 
             if not url.startswith(pr_url):
                 continue
