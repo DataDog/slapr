@@ -91,7 +91,7 @@ MOCK_EVENT = {
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
             [Review(state="comment", username="alice")],
             [],
-            ["test_review_started"],
+            ["test_review_started", "test_commented"],
             id="comment",
         ),
         pytest.param(
@@ -100,6 +100,27 @@ MOCK_EVENT = {
             [Reaction(emoji="test_needs_change", user_ids=["U1234"])],
             ["test_review_started", "test_approved"],
             id="approved-from-changes-requested",
+        ),
+        pytest.param(
+            [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
+            [Review(state="commented", username="alice"), Review(state="approved", username="alice")],
+            [Reaction(emoji="test_commented", user_ids=["U1234"])],
+            ["test_review_started", "test_approved"],
+            id="approved-from-commented",
+        ),
+        pytest.param(
+            [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
+            [Review(state="changes_requested", username="alice"), Review(state="comment", username="bob")],
+            [],
+            ["test_review_started", "test_changes_requested"],
+            id="commented-ignored-when-changes-requested",
+        ),
+        pytest.param(
+            [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
+            [Review(state="changes_requested", username="alice"), Review(state="approved", username="bob")],
+            [],
+            ["test_review_started", "test_changes_requested"],
+            id="approved-ignored-when-changes-requested",
         ),
         pytest.param(
             [Message(text="Need :eyes: but I've got no PR URL", timestamp="yyyy-mm-dd")],
@@ -131,6 +152,7 @@ def test_on_pull_request_review(
         emoji_needs_change="test_needs_change",
         emoji_merged="test_merged",
         emoji_closed="test_closed",
+        emoji_commented="test_commented"
     )
     slapr.main(config)
 
@@ -180,6 +202,7 @@ def test_on_pull_request(event: dict, pr: PullRequest, reactions: List[Reaction]
         emoji_needs_change="test_needs_change",
         emoji_merged="test_merged",
         emoji_closed="test_closed",
+        emoji_commented="test_commented"
     )
     slapr.main(config)
 

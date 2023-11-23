@@ -10,26 +10,26 @@ import itertools
 from .github import Review
 
 
-def get_for_reviews(reviews: List[Review], emoji_needs_change: str, emoji_approved: str, number_of_approvals_required: int) -> Optional[str]:
-    reviews_without_comments = [review for review in reviews if review.state != "commented"]
+def get_for_reviews(reviews: List[Review], emoji_needs_change: str, emoji_approved: str, number_of_approvals_required: int, emoji_commented: int) -> Optional[str]:
 
     reviews_by_author = {
         username: list(reviews)
-        for username, reviews in itertools.groupby(reviews_without_comments, key=lambda review: review.username)
+        for username, reviews in itertools.groupby(reviews, key=lambda review: review.username)
     }
     
-    approvals = [review.state for review in reviews_without_comments]
-    approvalsCount = approvals.count("approved")
-
     last_reviews = [reviews[-1] for reviews in reviews_by_author.values() if reviews]
-
     unique_states = {review.state for review in last_reviews}
 
     if "changes_requested" in unique_states:
         return emoji_needs_change
 
-    if ("approved" in unique_states) and approvalsCount >= number_of_approvals_required:
+    approval_count = len([review.state for review in reviews if review.state=="approved"])
+    if ("approved" in unique_states) and  approval_count >= number_of_approvals_required:
         return emoji_approved
+
+    if "commented" in unique_states:
+        return emoji_commented
+
 
     return None
 
