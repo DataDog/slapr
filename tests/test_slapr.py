@@ -89,7 +89,7 @@ MOCK_EVENT = {
         ),
         pytest.param(
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
-            [Review(state="comment", username="alice")],
+            [Review(state="commented", username="alice")],
             [],
             ["test_review_started", "test_commented"],
             id="comment",
@@ -112,14 +112,14 @@ MOCK_EVENT = {
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
             [Review(state="changes_requested", username="alice"), Review(state="comment", username="bob")],
             [],
-            ["test_review_started", "test_changes_requested"],
+            ["test_review_started", "test_needs_change"],
             id="commented-ignored-when-changes-requested",
         ),
         pytest.param(
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
             [Review(state="changes_requested", username="alice"), Review(state="approved", username="bob")],
             [],
-            ["test_review_started", "test_changes_requested"],
+            ["test_review_started", "test_needs_change"],
             id="approved-ignored-when-changes-requested",
         ),
         pytest.param(
