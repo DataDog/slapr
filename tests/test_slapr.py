@@ -61,11 +61,7 @@ MOCK_EVENT = {
     "pull_request": {
         "number": 42,
         "html_url": "https://github.com/example/repo/pull/42",
-        "head": {
-            "repo": {
-                "fork": False
-            }
-        }
+        "head": {"repo": {"fork": False}},
     }
 }
 
@@ -152,7 +148,7 @@ def test_on_pull_request_review(
         emoji_needs_change="test_needs_change",
         emoji_merged="test_merged",
         emoji_closed="test_closed",
-        emoji_commented="test_commented"
+        emoji_commented="test_commented",
     )
     slapr.main(config)
 
@@ -189,7 +185,11 @@ def test_on_pull_request(event: dict, pr: PullRequest, reactions: List[Reaction]
     reviews = [Review(state="approved", username="alice")]
 
     slack_backend = MockSlackBackend(messages=messages, target_message=messages[0], reactions=reactions)
-    github_backend = MockGithubBackend(reviews=reviews, event=event, pr=pr,)
+    github_backend = MockGithubBackend(
+        reviews=reviews,
+        event=event,
+        pr=pr,
+    )
 
     config = Config(
         slack_client=SlackClient(backend=slack_backend),
@@ -202,7 +202,7 @@ def test_on_pull_request(event: dict, pr: PullRequest, reactions: List[Reaction]
         emoji_needs_change="test_needs_change",
         emoji_merged="test_merged",
         emoji_closed="test_closed",
-        emoji_commented="test_commented"
+        emoji_commented="test_commented",
     )
     slapr.main(config)
 

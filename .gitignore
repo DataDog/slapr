@@ -2,6 +2,7 @@
 __pycache__/
 .env
 .mypy_cache
+build/
 venv/
 .idea
 *.egg-info
