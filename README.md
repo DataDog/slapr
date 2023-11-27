@@ -56,3 +56,13 @@ jobs:
         SLAPR_BOT_USER_ID: UTMS06TPX
         SLAPR_NUMBER_OF_APPROVALS_REQUIRED: 2 # integer minimum=1 default=1. The number of approvals that are required for the approval emoji to be added in Slack
 ```
+
+## Troubleshoot
+
+If you get the following error during Slapr run:
+```
+slack.errors.SlackApiError: The request to the Slack API failed.
+The server responded with: {'ok': False, 'error': 'account_inactive'}
+```
+
+Your `SLACK_BOT_USER_OAUTH_ACCESS_TOKEN` OAuth Token might not be valid anymore. If that's the case you should replace it with the one in `https://api.slack.com/apps/{your_app_id}/oauth`.
