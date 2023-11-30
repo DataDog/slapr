@@ -28,10 +28,11 @@ Slack API Token with following permissions
 | emoji                        | description                                                  |
 |------------------------------|--------------------------------------------------------------|
 | `SLAPR_EMOJI_REVIEW_STARTED` | The PR has at least 1 in-progress review.                    |
-| `SLAPR_EMOJI_APPROVED`             | The PR has all required approvals and is ready to be merged. |
-| `SLAPR_EMOJI_NEEDS_CHANGES`        | Changes are requested for the PR.                            |
-| `SLAPR_EMOJI_MERGED`               | The PR is merged.                                            |
-| `SLAPR_EMOJI_CLOSED`               | The PR is closed.                                            |
+| `SLAPR_EMOJI_APPROVED`       | The PR has all required approvals and is ready to be merged. |
+| `SLAPR_EMOJI_NEEDS_CHANGES`  | Changes are requested for the PR.                            |
+| `SLAPR_EMOJI_COMMENTED`      | A review has been submitted with comment only.               |
+| `SLAPR_EMOJI_MERGED`         | The PR is merged.                                            |
+| `SLAPR_EMOJI_CLOSED`         | The PR is closed.                                            |
 
 ## Example Usage
 

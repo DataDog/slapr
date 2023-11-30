@@ -30,6 +30,7 @@ config = Config(
     emoji_needs_change=os.environ.get("SLAPR_EMOJI_CHANGES_REQUESTED", "changes_requested"),
     emoji_merged=os.environ.get("SLAPR_EMOJI_MERGED", "merged"),
     emoji_closed=os.environ.get("SLAPR_EMOJI_CLOSED", "closed"),
+    emoji_commented=os.environ.get("SLAPR_EMOJI_COMMENTED", "comment"),
 )
 
 main(config)

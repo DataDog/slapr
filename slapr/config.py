@@ -23,6 +23,7 @@ class Config(NamedTuple):
     emoji_needs_change: str
     emoji_merged: str
     emoji_closed: str
+    emoji_commented: str
 
     @property
     def emojis_by_review_step(self) -> Callable[[str], int]:
@@ -32,6 +33,7 @@ class Config(NamedTuple):
         """
         review_steps_as_emojis = [
             self.emoji_review_started,
+            self.emoji_commented,
             self.emoji_needs_change,
             self.emoji_approved,
             self.emoji_closed,

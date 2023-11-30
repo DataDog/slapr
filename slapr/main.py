@@ -3,8 +3,8 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/)
 # Copyright 2023-present Datadog, Inc.
 
-from .config import Config
 from . import emojis
+from .config import Config
 
 
 def main(config: Config) -> None:
@@ -23,7 +23,11 @@ def main(config: Config) -> None:
     pr = github.get_pr(pr_number=pr_number)
     reviews = github.get_pr_reviews(pr_number=pr_number)
     review_emoji = emojis.get_for_reviews(
-        reviews, emoji_needs_change=config.emoji_needs_change, emoji_approved=config.emoji_approved, number_of_approvals_required=config.number_of_approvals_required
+        reviews,
+        emoji_commented=config.emoji_commented,
+        emoji_needs_change=config.emoji_needs_change,
+        emoji_approved=config.emoji_approved,
+        number_of_approvals_required=config.number_of_approvals_required,
     )
 
     pr_url: str = event["pull_request"]["html_url"]
@@ -52,7 +56,7 @@ def main(config: Config) -> None:
 
     if pr.merged:
         new_emojis.add(config.emoji_merged)
-    elif pr.state == 'closed':
+    elif pr.state == "closed":
         new_emojis.add(config.emoji_closed)
 
     # Add emojis
@@ -65,10 +69,14 @@ def main(config: Config) -> None:
 
     for review_emoji in sorted_emojis_to_add:
         slack.add_reaction(
-            timestamp=timestamp, emoji=review_emoji, channel_id=config.slack_channel_id,
+            timestamp=timestamp,
+            emoji=review_emoji,
+            channel_id=config.slack_channel_id,
         )
 
     for review_emoji in emojis_to_remove:
         slack.remove_reaction(
-            timestamp=timestamp, emoji=review_emoji, channel_id=config.slack_channel_id,
+            timestamp=timestamp,
+            emoji=review_emoji,
+            channel_id=config.slack_channel_id,
         )
