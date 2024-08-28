@@ -7,4 +7,4 @@
 # Rules are matched bottom-to-top, so one team can own subdirectories
 # and another the rest of the directory.
 
-/.*                                     @DataDog/agent-platform
+/.*                                     @DataDog/agent-devx-loops
