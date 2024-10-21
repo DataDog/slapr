@@ -16,7 +16,7 @@ def main(config: Config) -> None:
     is_fork: bool = event["pull_request"]["head"]["repo"]["fork"]
 
     if is_fork:
-        print(f"Fork PRs are not supported.")
+        print("Fork PRs are not supported.")
         return
 
     pr_number: int = event["pull_request"]["number"]

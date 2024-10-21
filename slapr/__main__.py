@@ -6,7 +6,7 @@
 import os
 
 import github
-import slack
+import slack_sdk
 
 from .config import Config
 from .github import GithubClient, WebGithubBackend
@@ -14,7 +14,7 @@ from .main import main
 from .slack import SlackClient, WebSlackBackend
 
 config = Config(
-    slack_client=SlackClient(backend=WebSlackBackend(client=slack.WebClient(os.environ["SLACK_API_TOKEN"]))),
+    slack_client=SlackClient(backend=WebSlackBackend(client=slack_sdk.WebClient(os.environ["SLACK_API_TOKEN"]))),
     github_client=GithubClient(
         backend=WebGithubBackend(
             gh=github.Github(os.environ["GITHUB_TOKEN"]),

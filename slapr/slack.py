@@ -6,7 +6,7 @@
 import re
 from typing import List, NamedTuple, Optional, Set
 
-import slack
+import slack_sdk
 
 PR_URL_PATTERN = r"<(?P<url>.*)>"
 
@@ -36,7 +36,7 @@ class SlackBackend:
 
 
 class WebSlackBackend(SlackBackend):
-    def __init__(self, client: slack.WebClient) -> None:
+    def __init__(self, client: slack_sdk.WebClient) -> None:
         self._client = client
 
     def get_latest_messages(self, channel_id: str) -> List[Message]:
