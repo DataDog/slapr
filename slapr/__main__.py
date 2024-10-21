@@ -13,6 +13,8 @@ from .github import GithubClient, WebGithubBackend
 from .main import main
 from .slack import SlackClient, WebSlackBackend
 
+print('Hello from slapr!')
+
 config = Config(
     slack_client=SlackClient(backend=WebSlackBackend(client=slack_sdk.WebClient(os.environ["SLACK_API_TOKEN"]))),
     github_client=GithubClient(
