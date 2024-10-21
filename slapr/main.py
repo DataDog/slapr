@@ -8,6 +8,8 @@ from .config import Config
 
 
 def main(config: Config) -> None:
+    print('Welcome to slapr@celian/codeowners!')
+
     slack = config.slack_client
     github = config.github_client
 
