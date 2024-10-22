@@ -149,6 +149,7 @@ def test_on_pull_request_review(
         emoji_merged="test_merged",
         emoji_closed="test_closed",
         emoji_commented="test_commented",
+        slapr_multichannel=False,
     )
     slapr.main(config)
 
@@ -203,6 +204,7 @@ def test_on_pull_request(event: dict, pr: PullRequest, reactions: List[Reaction]
         emoji_merged="test_merged",
         emoji_closed="test_closed",
         emoji_commented="test_commented",
+        slapr_multichannel=False,
     )
     slapr.main(config)
 
