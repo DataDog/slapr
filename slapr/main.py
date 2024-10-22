@@ -91,10 +91,11 @@ def main(config: Config) -> None:
         TEAM_CONFIG_FILE = 'packages/lib/teams/teams-config.ts'
         team_to_channel = get_team_to_channel(github.read_file(TEAM_CONFIG_REPO, TEAM_CONFIG_FILE))
         channel_reviews = get_channel_reviews(reviews, team_to_channel, github)
+        print('test:')
         print(channel_reviews)
-        exit()
+        # exit()
 
-        channel_reviews = {'C06QEJ59XQF': TeamState.APPROVED, 'C07SHSHS3E3': TeamState.CHANGES_REQUESTED}
+        channel_reviews = {'C06QEJ59XQF': TeamState.CHANGES_REQUESTED, 'C07SHSHS3E3': TeamState.APPROVED}
 
         # Update each channel
         for channel, state in channel_reviews.items():
