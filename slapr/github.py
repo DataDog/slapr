@@ -4,7 +4,7 @@
 # Copyright 2023-present Datadog, Inc.
 
 import json
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Set
 
 from github import Github
 
@@ -112,7 +112,7 @@ class TeamState:
         raise ValueError(f"Unknown state: {state}")
 
 
-def get_team_state(user_states: set[str]) -> str:
+def get_team_state(user_states: Set[str]) -> str:
     """Deduce overall team state from all reviews of multiple members of the same team."""
 
     if TeamState.CHANGES_REQUESTED in user_states:
