@@ -88,10 +88,10 @@ def main(config: Config) -> None:
 
         team_to_channel = get_team_to_channel()
         channel_reviews = get_channel_reviews(reviews, team_to_channel, github)
-        print('test:')
-        print(channel_reviews)
-        exit()
-
+        # print('test:')
+        # print(channel_reviews)
+        # exit()
+        # TODO
         channel_reviews = {'C06QEJ59XQF': TeamState.CHANGES_REQUESTED, 'C07SHSHS3E3': TeamState.APPROVED}
 
         # Update each channel
