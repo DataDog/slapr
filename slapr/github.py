@@ -75,7 +75,10 @@ class WebGithubBackend(GithubBackend):
         # assert proc.returncode == 0, f'Failed to execute `{cmd}`'
         # teams_json = proc.stdout
 
+        print(user)
+        print()
         teams_json = self._graphql('{organization(login: "DataDog") {teams(first: 100, userLogins: ["' + user + '"]) { edges {node {name}}}}}')
+        print(teams_json)
         teams = [
             t['node']['name'] for t in teams_json['data']['organization']['teams']['edges'] if t['node']['name'] != 'Dev'
         ]
