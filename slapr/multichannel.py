@@ -40,7 +40,7 @@ def get_team_to_channel():
     mapping = {}
     for env, channel in os.environ.items():
         if env.startswith('SLAPR_TEAM_CHANNEL_'):
-            team_name = env.removeprefix('SLAPR_TEAM_CHANNEL_').lower().replace('_', '-')
+            team_name = env[len('SLAPR_TEAM_CHANNEL_'):].lower().replace('_', '-')
             mapping[team_name] = channel
 
     return mapping
