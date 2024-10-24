@@ -86,14 +86,11 @@ def main(config: Config) -> None:
         from .multichannel import get_team_to_channel, get_channel_reviews
         from .github import TeamState
 
-        # TODO : clean
-        TEAM_CONFIG_REPO = 'DataDog/web-ui'
-        TEAM_CONFIG_FILE = 'packages/lib/teams/teams-config.ts'
-        team_to_channel = get_team_to_channel(github.read_file(TEAM_CONFIG_REPO, TEAM_CONFIG_FILE))
+        team_to_channel = get_team_to_channel()
         channel_reviews = get_channel_reviews(reviews, team_to_channel, github)
         print('test:')
         print(channel_reviews)
-        # exit()
+        exit()
 
         channel_reviews = {'C06QEJ59XQF': TeamState.CHANGES_REQUESTED, 'C07SHSHS3E3': TeamState.APPROVED}
 

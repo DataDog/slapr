@@ -1,6 +1,5 @@
-import json
-import re
 from collections import defaultdict
+import os
 
 from .github import GithubClient, get_team_state
 
@@ -35,28 +34,13 @@ def get_channel_reviews(reviews, team_to_channel, gh: GithubClient):
     return channel_reviews
 
 
-def get_team_to_channel(team_groups_contents):
-    """Get a mapping team -> slack channel by reading the content of the JS mapping."""
+def get_team_to_channel():
+    """Get a mapping team -> slack channel by reading the SLAPR_TEAM_CHANNEL_* environment variables."""
 
-    RE_TEAM_GROUPS = re.compile(r'.*teamGroups.*= ({.*});', re.DOTALL | re.MULTILINE)
-    RE_COMMENTS = re.compile(r'//.*', re.MULTILINE)
-    RE_REPLACE_SLACK_URL = re.compile(r'`\$\{SLACK_URL\}/(.+)`', re.MULTILINE)
-    RE_REPLACE_KEYS = re.compile(r'(?<=[^a-zA-Z0-9_])[a-zA-Z0-9_]+(?=:)', re.MULTILINE)
-    RE_COMMAS = re.compile(r',([}\],])', re.MULTILINE)
+    mapping = {}
+    for env, channel in os.environ.items():
+        if env.startswith('SLAPR_TEAM_CHANNEL_'):
+            team_name = env.removeprefix('SLAPR_TEAM_CHANNEL_').lower().replace('_', '-')
+            mapping[team_name] = channel
 
-    # TS -> JSON
-    team_groups = RE_TEAM_GROUPS.match(team_groups_contents).group(1)
-    team_groups = RE_COMMENTS.sub('\n', team_groups)
-    team_groups = RE_REPLACE_SLACK_URL.sub(lambda match: f'"{match.group(1)}"', team_groups)
-    team_groups = team_groups.replace("'", '"')
-    team_groups = team_groups.replace(' ', '')
-    team_groups = team_groups.replace('\n', '')
-    team_groups = RE_COMMAS.sub(lambda match: match.group(1), team_groups)
-    team_groups = RE_REPLACE_KEYS.sub(lambda match: f'"{match.group(0)}"', team_groups)
-
-    team_groups = json.loads(team_groups)
-
-    team_to_channel = {team: team_groups[team]['slackChannel'] for team in team_groups}
-
-    return team_to_channel
-
+    return mapping
