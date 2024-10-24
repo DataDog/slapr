@@ -59,8 +59,21 @@ class WebGithubBackend(GithubBackend):
     def get_user_teams(self, user: str) -> List[str]:
         """Get all the teams of a specific user."""
 
-        user = self._gh.get_user(user)
-        teams = [team.name for team in self.gh_repo.get_teams() if team.has_in_members(user) and team.name != 'Dev']
+        import subprocess
+
+        cmd = "gh api graphql --paginate -f query='{organization(login: \"DataDog\") {teams(first: 100, userLogins: [\"" + user + "\"]) { edges {node {name}}}}}'"
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, shell=True)
+        assert proc.returncode == 0, f'Failed to execute `{cmd}`'
+        teams_json = proc.stdout
+        teams_json = json.loads(teams_json)
+        teams = [
+            t['node']['name'] for t in teams_json['data']['organization']['teams']['edges'] if t['node']['name'] != 'Dev'
+        ]
+
+        # self._gh.get_graph
+
+        # user = self._gh.get_user(user)
+        # teams = [team.name for team in self.gh_repo.get_teams() if team.has_in_members(user) and team.name != 'Dev']
 
         assert len(teams) > 0, f'No team found for user {user}'
 
@@ -90,7 +103,6 @@ class GithubClient:
         return self._backend.read_file(repo, path)
 
 
-# TODO: Use this everywhere
 class TeamState:
     APPROVED = 'approved'
     APPROVED_COMMENTS = 'approved_comments'
