@@ -7,7 +7,7 @@ import re
 from typing import List, NamedTuple, Optional, Set
 
 import slack_sdk
-import slack_sdk.errors
+from slack_sdk.errors import SlackApiError
 
 PR_URL_PATTERN = r"<(?P<url>.*)>"
 
@@ -62,7 +62,7 @@ class WebSlackBackend(SlackBackend):
     def add_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
         try:
             self._client.reactions_add(channel=channel_id, name=emoji, timestamp=timestamp)
-        except slack_sdk.errors.SlackApiError as e:
+        except SlackApiError as e:
             if e.response['error'] == 'already_reacted':
                 print(f'Warning: Message {timestamp} has already emote {emoji} within channel {channel_id}')
                 # Ignore already reacted errors
