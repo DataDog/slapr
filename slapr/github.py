@@ -3,6 +3,9 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/)
 # Copyright 2023-present Datadog, Inc.
 
+import os
+import subprocess
+import requests
 import json
 from typing import List, NamedTuple, Set
 
@@ -44,6 +47,14 @@ class WebGithubBackend(GithubBackend):
         self.repo = repo
         self.gh_repo = gh.get_repo(repo)
 
+    def _graphql(self, query):
+        headers = {"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}"}
+        request = requests.post('https://api.github.com/graphql', json={'query': query}, headers=headers)
+        if request.status_code == 200:
+            return request.json()
+        else:
+            raise Exception("Query failed to run by returning code of {}. {}".format(request.status_code, query))
+
     def read_event(self) -> dict:
         with open(self.event_path) as f:
             return json.load(f)
@@ -59,21 +70,15 @@ class WebGithubBackend(GithubBackend):
     def get_user_teams(self, user: str) -> List[str]:
         """Get all the teams of a specific user."""
 
-        import subprocess
+        # cmd = "gh api graphql --paginate -f query='{organization(login: \"DataDog\") {teams(first: 100, userLogins: [\"" + user + "\"]) { edges {node {name}}}}}'"
+        # proc = subprocess.run(cmd, stdout=subprocess.PIPE, shell=True)
+        # assert proc.returncode == 0, f'Failed to execute `{cmd}`'
+        # teams_json = proc.stdout
 
-        cmd = "gh api graphql --paginate -f query='{organization(login: \"DataDog\") {teams(first: 100, userLogins: [\"" + user + "\"]) { edges {node {name}}}}}'"
-        proc = subprocess.run(cmd, stdout=subprocess.PIPE, shell=True)
-        assert proc.returncode == 0, f'Failed to execute `{cmd}`'
-        teams_json = proc.stdout
-        teams_json = json.loads(teams_json)
+        teams_json = self._graphql('{organization(login: "DataDog") {teams(first: 100, userLogins: ["' + user + '"]) { edges {node {name}}}}}')
         teams = [
             t['node']['name'] for t in teams_json['data']['organization']['teams']['edges'] if t['node']['name'] != 'Dev'
         ]
-
-        # self._gh.get_graph
-
-        # user = self._gh.get_user(user)
-        # teams = [team.name for team in self.gh_repo.get_teams() if team.has_in_members(user) and team.name != 'Dev']
 
         assert len(teams) > 0, f'No team found for user {user}'
 
