@@ -49,11 +49,11 @@ class WebGithubBackend(GithubBackend):
 
     def _graphql(self, query):
         headers = {"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}"}
-        request = requests.post('https://api.github.com/graphql', json={'query': query}, headers=headers)
+        request = requests.post('https://api.github.com/graphql', json={'query': query}, headers=headers, timeout=10)
         if request.status_code == 200:
             return request.json()
-        else:
-            raise Exception("Query failed to run by returning code of {}. {}".format(request.status_code, query))
+
+        raise RuntimeError(f"Query failed to run by returning code of {request.status_code}. {query}")
 
     def read_event(self) -> dict:
         with open(self.event_path) as f:
@@ -114,7 +114,7 @@ class TeamState:
         if state == TeamState.APPROVED:
             return emoji_approved
         if state == TeamState.APPROVED_COMMENTS:
-            # TODO
+            # TODO(celianr): Add approved comment emoji and state
             return emoji_approved
         if state == TeamState.COMMENTED:
             return emoji_commented
@@ -133,7 +133,6 @@ def get_team_state(user_states: Set[str]) -> str:
     if TeamState.APPROVED in user_states:
         if TeamState.COMMENTED in user_states:
             return TeamState.APPROVED_COMMENTS
-        else:
-            return TeamState.APPROVED
+        return TeamState.APPROVED
 
     return TeamState.COMMENTED
