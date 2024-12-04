@@ -89,7 +89,7 @@ jobs:
         run: |
           echo '{"agent-devx-infra": "C06QEJ59XQF", "agent-devx-loops": "C07SHSHS3E3"}' > "$SLAPR_MULTICHANNEL_TEAM_MAPPING"
           echo 'Channels are #celian-tests and #yet-another-celian-tests'
-      - uses: DataDog/slapr@celian/codeowners
+      - uses: DataDog/slapr@master
         env:
           SLAPR_MULTICHANNEL: "true"
           SLACK_API_TOKEN: "${{ secrets.SLACK_API_TOKEN }}"
