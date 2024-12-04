@@ -3,8 +3,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/)
 # Copyright 2023-present Datadog, Inc.
 
-# Use 3.7 instead of 3.8 for faster builds (a.k.a. The Wheels Problem™).
-FROM python:3.7
+FROM python:3.12
 
 WORKDIR /app
 COPY setup.py /app/
