@@ -11,7 +11,6 @@ def get_channel_reviews(reviews, team_to_channel, gh: GithubClient):
     # Get review for each user
     user_reviews = {}
     for review in reviews:
-        # TODO: Handle approved + commented case
         user_reviews[review.username] = review.state
 
     # Aggregate user reviews by team

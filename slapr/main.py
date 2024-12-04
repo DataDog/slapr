@@ -95,17 +95,12 @@ def main(config: Config) -> None:
         assert (
             config.slapr_multichannel_team_mapping is not None
         ), "You must provide a team mapping JSON file."
-        team_to_channel = get_team_to_channel(config.slapr_multichannel_team_mapping)
-        # # TODO A
-        # print(len(team_to_channel))
-        # team_to_channel = {'agent-devx-infra': 'C06QEJ59XQF', 'agent-shared-components': 'C07SHSHS3E3'}
 
+        # Read config file to get github team -> slack channel mapping
+        team_to_channel = get_team_to_channel(config.slapr_multichannel_team_mapping)
+
+        # Get slack channel id -> review state mapping from the PR
         channel_reviews = get_channel_reviews(reviews, team_to_channel, github)
-        # print('test:')
-        # print(channel_reviews)
-        # exit()
-        # TODO A
-        # channel_reviews = {'C06QEJ59XQF': TeamState.CHANGES_REQUESTED, 'C07SHSHS3E3': TeamState.APPROVED}
 
         # Update each channel
         for channel, state in channel_reviews.items():
