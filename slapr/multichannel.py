@@ -18,7 +18,6 @@ def get_channel_reviews(reviews, team_to_channel, gh: GithubClient):
     for user, review in user_reviews.items():
         try:
             teams = gh.get_user_teams(user)
-            print(f"User: {user}, Review: {review}, Teams: {teams}")
             for team in teams:
                 team_reviews[team].add(review)
         except Exception:
@@ -26,8 +25,9 @@ def get_channel_reviews(reviews, team_to_channel, gh: GithubClient):
 
     # Aggregate team reviews by channel
     channel_reviews = defaultdict(set)
+    print('Multi-channel reviews:')
     for team, reviews in team_reviews.items():
-        print(f'Team: {team}, Reviews: {reviews}')
+        print(f'- {team}: {" ".join(reviews)}')
 
         if team not in team_to_channel:
             print(f'Warning: No slack channel for team {team}', file=sys.stderr)
