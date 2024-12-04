@@ -8,8 +8,8 @@ from setuptools import setup
 setup(
     name="slapr",
     description="Add emoji on Slack posts on PR updates",
-    version="0.0.0",
+    version="0.1.0",
     packages=["slapr"],
-    python_requires=">=3.7",
+    python_requires=">=3.12",
     install_requires=["slack_sdk==3.27.1", "pygithub==1.45.*"],
 )

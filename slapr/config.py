@@ -3,7 +3,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/)
 # Copyright 2023-present Datadog, Inc.
 
-from typing import Callable, NamedTuple, Optional
+from typing import Callable, NamedTuple
 
 from .github import GithubClient
 from .slack import SlackClient
@@ -13,13 +13,13 @@ class Config(NamedTuple):
     slack_client: SlackClient
     github_client: GithubClient
 
-    slack_channel_id: Optional[str]
+    slack_channel_id: str | None
     slapr_bot_user_id: str  # TODO: document how to obtain this user ID, or automate its retrieval.
     # If True, will find reviews on multiple team review channels.
     slapr_multichannel: bool
     # Path to a file containing a mapping from team names to Slack channel IDs
     # Json file such as: {'github-team-name': 'slack-channel-id'} -> {'datadog-dev': 'C01ABCDEF02'}
-    slapr_multichannel_team_mapping: Optional[str]
+    slapr_multichannel_team_mapping: str | None
     # Github organization name to deduce teams
     slapr_multichannel_org: str
 

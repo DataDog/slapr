@@ -5,7 +5,7 @@
 
 import re
 import sys
-from typing import List, NamedTuple, Optional, Set
+from typing import NamedTuple
 
 import slack_sdk
 from slack_sdk.errors import SlackApiError
@@ -20,14 +20,14 @@ class Message(NamedTuple):
 
 class Reaction(NamedTuple):
     emoji: str
-    user_ids: List[str]
+    user_ids: list[str]
 
 
 class SlackBackend:
-    def get_latest_messages(self, channel_id: str) -> List[Message]:
+    def get_latest_messages(self, channel_id: str) -> list[Message]:
         raise NotImplementedError  # pragma: no cover
 
-    def get_reactions(self, timestamp: str, channel_id: str) -> List[Reaction]:
+    def get_reactions(self, timestamp: str, channel_id: str) -> list[Reaction]:
         raise NotImplementedError  # pragma: no cover
 
     def add_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
@@ -41,7 +41,7 @@ class WebSlackBackend(SlackBackend):
     def __init__(self, client: slack_sdk.WebClient) -> None:
         self._client = client
 
-    def get_latest_messages(self, channel_id: str) -> List[Message]:
+    def get_latest_messages(self, channel_id: str) -> list[Message]:
         response = self._client.conversations_history(channel=channel_id)
         assert response["ok"]
         return [
@@ -50,14 +50,14 @@ class WebSlackBackend(SlackBackend):
             if message["type"] == "message"
         ]
 
-    def get_reactions(self, timestamp: str, channel_id: str) -> List[Reaction]:
+    def get_reactions(self, timestamp: str, channel_id: str) -> list[Reaction]:
         response = self._client.reactions_get(channel=channel_id, timestamp=timestamp)
         assert response["ok"]
 
         if response["type"] != "message":
             return []
 
-        reactions: List[dict] = response["message"].get("reactions", [])
+        reactions: list[dict] = response["message"].get("reactions", [])
         return [Reaction(emoji=reaction["name"], user_ids=reaction["users"]) for reaction in reactions]
 
     def add_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
@@ -79,7 +79,7 @@ class SlackClient:
     def __init__(self, *, backend: SlackBackend) -> None:
         self._backend = backend
 
-    def find_timestamp_of_review_requested_message(self, pr_url: str, channel_id: str) -> Optional[str]:
+    def find_timestamp_of_review_requested_message(self, pr_url: str, channel_id: str) -> str | None:
         messages = self._backend.get_latest_messages(channel_id=channel_id)
 
         for message in messages:
@@ -100,7 +100,7 @@ class SlackClient:
 
         return None
 
-    def get_emojis_for_user(self, timestamp: str, channel_id: str, user_id: str) -> Set[str]:
+    def get_emojis_for_user(self, timestamp: str, channel_id: str, user_id: str) -> set[str]:
         reactions = self._backend.get_reactions(timestamp=timestamp, channel_id=channel_id)
         return {reaction.emoji for reaction in reactions if user_id in reaction.user_ids}
 
