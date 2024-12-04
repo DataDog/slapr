@@ -3,6 +3,8 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/)
 # Copyright 2023-present Datadog, Inc.
 
+import sys
+
 from . import emojis
 from .config import Config
 
@@ -10,9 +12,11 @@ from .config import Config
 def channel_react(slack, pr_url, config, review_emoji, pr, channel_id):
     """React to `channel_id` with `review_emoji` for PR review `pr_url`."""
 
-    print('Reacting to channel', channel_id, 'with emoji', review_emoji)
+    print("Reacting to channel", channel_id, "with emoji", review_emoji)
 
-    timestamp = slack.find_timestamp_of_review_requested_message(pr_url=pr_url, channel_id=channel_id)
+    timestamp = slack.find_timestamp_of_review_requested_message(
+        pr_url=pr_url, channel_id=channel_id
+    )
     print(f"Slack message timestamp: {timestamp}")
 
     if timestamp is None:
@@ -39,7 +43,9 @@ def channel_react(slack, pr_url, config, review_emoji, pr, channel_id):
         new_emojis.add(config.emoji_closed)
 
     # Add emojis
-    emojis_to_add, emojis_to_remove = emojis.diff(new_emojis=new_emojis, existing_emojis=existing_emojis)
+    emojis_to_add, emojis_to_remove = emojis.diff(
+        new_emojis=new_emojis, existing_emojis=existing_emojis
+    )
 
     sorted_emojis_to_add = sorted(emojis_to_add, key=config.emojis_by_review_step)
 
@@ -81,29 +87,42 @@ def main(config: Config) -> None:
     print(f"Event PR: {pr_url}")
 
     if config.slapr_multichannel:
-        print('Multi channel enabled')
+        print("Multi channel enabled")
 
         from .multichannel import get_team_to_channel, get_channel_reviews
         from .github import TeamState
 
-        assert config.slapr_multichannel_team_mapping is not None, 'You must provide a team mapping JSON file.'
+        assert (
+            config.slapr_multichannel_team_mapping is not None
+        ), "You must provide a team mapping JSON file."
         team_to_channel = get_team_to_channel(config.slapr_multichannel_team_mapping)
-        # TODO A
-        print(len(team_to_channel))
-        team_to_channel = {'agent-devx-infra': 'C06QEJ59XQF', 'agent-shared-components': 'C07SHSHS3E3'}
+        # # TODO A
+        # print(len(team_to_channel))
+        # team_to_channel = {'agent-devx-infra': 'C06QEJ59XQF', 'agent-shared-components': 'C07SHSHS3E3'}
 
         channel_reviews = get_channel_reviews(reviews, team_to_channel, github)
         # print('test:')
-        print(channel_reviews)
+        # print(channel_reviews)
         # exit()
-        # TODO
-        channel_reviews = {'C06QEJ59XQF': TeamState.CHANGES_REQUESTED, 'C07SHSHS3E3': TeamState.APPROVED}
+        # TODO A
+        # channel_reviews = {'C06QEJ59XQF': TeamState.CHANGES_REQUESTED, 'C07SHSHS3E3': TeamState.APPROVED}
 
         # Update each channel
         for channel, state in channel_reviews.items():
-            print(f'Updating review for channel {channel} with state {state}')
-            emoji = TeamState.get_emoji(state, config.emoji_approved, config.emoji_commented, config.emoji_needs_change)
+            print(f"Updating review for channel {channel} with state {state}")
+            emoji = TeamState.get_emoji(
+                state,
+                config.emoji_approved,
+                config.emoji_commented,
+                config.emoji_needs_change,
+            )
             channel_react(slack, pr_url, config, emoji, pr, channel)
+
+        if not channel_reviews:
+            print(
+                f"Warning: No review slack channels found for PR {pr_url}",
+                file=sys.stderr,
+            )
     else:
         review_emoji = emojis.get_for_reviews(
             reviews,

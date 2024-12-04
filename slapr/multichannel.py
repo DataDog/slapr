@@ -1,6 +1,6 @@
-from collections import defaultdict
 import json
-import os
+import sys
+from collections import defaultdict
 
 from .github import GithubClient, get_team_state
 
@@ -17,15 +17,23 @@ def get_channel_reviews(reviews, team_to_channel, gh: GithubClient):
     # Aggregate user reviews by team
     team_reviews = defaultdict(set)
     for user, review in user_reviews.items():
-        teams = gh.get_user_teams(user)
-        print(f"User: {user}, Review: {review}, Teams: {teams}")
-        for team in teams:
-            team_reviews[team].add(review)
+        try:
+            teams = gh.get_user_teams(user)
+            print(f"User: {user}, Review: {review}, Teams: {teams}")
+            for team in teams:
+                team_reviews[team].add(review)
+        except Exception:
+            print(f"Warning: Could not get teams for user {user}", file=sys.stderr)
 
     # Aggregate team reviews by channel
     channel_reviews = defaultdict(set)
     for team, reviews in team_reviews.items():
         print(f'Team: {team}, Reviews: {reviews}')
+
+        if team not in team_to_channel:
+            print(f'Warning: No slack channel for team {team}', file=sys.stderr)
+            continue
+
         channel = team_to_channel[team]
         channel_reviews[channel].update(reviews)
 
