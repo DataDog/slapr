@@ -4,18 +4,17 @@
 # Copyright 2023-present Datadog, Inc.
 
 import itertools
-from typing import List, Optional, Set, Tuple
 
 from .github import Review
 
 
 def get_for_reviews(
-    reviews: List[Review],
+    reviews: list[Review],
     emoji_commented: int,
     emoji_needs_change: str,
     emoji_approved: str,
     number_of_approvals_required: int,
-) -> Optional[str]:
+) -> str | None:
 
     reviews_by_author = {
         username: list(reviews) for username, reviews in itertools.groupby(reviews, key=lambda review: review.username)
@@ -37,7 +36,7 @@ def get_for_reviews(
     return None
 
 
-def diff(new_emojis: Set[str], existing_emojis: Set[str]) -> Tuple[Set[str], Set[str]]:
+def diff(new_emojis: set[str], existing_emojis: set[str]) -> tuple[set[str], set[str]]:
     emojis_to_add = new_emojis - existing_emojis
     emojis_to_remove = existing_emojis - new_emojis
     return emojis_to_add, emojis_to_remove
