@@ -33,7 +33,7 @@ class GithubBackend:
     def get_pr(self, pr_number: int) -> PullRequest:
         raise NotImplementedError  # pragma: no cover
 
-    def get_user_teams(self, user: str) -> List[str]:
+    def get_user_teams(self, user: str, org: str) -> List[str]:
         raise NotImplementedError  # pragma: no cover
 
     def read_file(self, repo: str, path: str) -> str:
@@ -67,10 +67,10 @@ class WebGithubBackend(GithubBackend):
         pr = self.gh_repo.get_pull(pr_number)
         return PullRequest(state=pr.state, merged=pr.merged, mergeable_state=pr.mergeable_state)
 
-    def get_user_teams(self, user: str) -> List[str]:
+    def get_user_teams(self, user: str, org: str) -> List[str]:
         """Get all the teams of a specific user."""
 
-        teams_json = self._graphql('{organization(login: "DataDog") {teams(first: 100, userLogins: ["' + user + '"]) { edges {node {name}}}}}')
+        teams_json = self._graphql('{organization(login: "' + org + '") {teams(first: 100, userLogins: ["' + user + '"]) { edges {node {name}}}}}')
         teams = [
             t['node']['name'] for t in teams_json['data']['organization']['teams']['edges'] if t['node']['name'] != 'Dev'
         ]
@@ -96,8 +96,8 @@ class GithubClient:
     def get_pr(self, pr_number: int) -> PullRequest:
         return self._backend.get_pr(pr_number)
 
-    def get_user_teams(self, user: str) -> List[str]:
-        return self._backend.get_user_teams(user)
+    def get_user_teams(self, user: str, org: str) -> List[str]:
+        return self._backend.get_user_teams(user, org)
 
     def read_file(self, repo, path) -> str:
         return self._backend.read_file(repo, path)
@@ -137,10 +137,3 @@ def get_team_state(user_states: Set[str]) -> str:
             return TeamState.APPROVED
 
     return TeamState.COMMENTED
-
-
-def get_team_groups_contents(gh: Github) -> str:
-    repo = gh.get_repo('DataDog/web-ui')
-    contents = str(repo.get_contents('packages/lib/teams/teams-config.ts').decoded_content, 'utf-8')
-
-    return contents

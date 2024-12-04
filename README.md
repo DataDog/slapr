@@ -23,6 +23,8 @@ Slack API Token with following permissions
 - `reactions:read`
 - `reactions:write`
 
+If multi-channel is used, the Github token must have the permission to read members from the organization (check-out fine grained tokens).
+
 ## Emoji status
 
 | emoji                        | description                                                  |

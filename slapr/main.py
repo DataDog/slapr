@@ -100,7 +100,7 @@ def main(config: Config) -> None:
         team_to_channel = get_team_to_channel(config.slapr_multichannel_team_mapping)
 
         # Get slack channel id -> review state mapping from the PR
-        channel_reviews = get_channel_reviews(reviews, team_to_channel, github)
+        channel_reviews = get_channel_reviews(reviews, team_to_channel, github, config.slapr_multichannel_org)
 
         # Update each channel
         for channel, state in channel_reviews.items():

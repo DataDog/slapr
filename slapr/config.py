@@ -20,6 +20,8 @@ class Config(NamedTuple):
     # Path to a file containing a mapping from team names to Slack channel IDs
     # Json file such as: {'github-team-name': 'slack-channel-id'} -> {'datadog-dev': 'C01ABCDEF02'}
     slapr_multichannel_team_mapping: Optional[str]
+    # Github organization name to deduce teams
+    slapr_multichannel_org: str
 
     number_of_approvals_required: int
 

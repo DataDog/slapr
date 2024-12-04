@@ -5,7 +5,7 @@ from collections import defaultdict
 from .github import GithubClient, get_team_state
 
 
-def get_channel_reviews(reviews, team_to_channel, gh: GithubClient):
+def get_channel_reviews(reviews, team_to_channel, gh: GithubClient, org: str):
     """From the review history, deduce the review state to send to each channel."""
 
     # Get review for each user
@@ -17,7 +17,7 @@ def get_channel_reviews(reviews, team_to_channel, gh: GithubClient):
     team_reviews = defaultdict(set)
     for user, review in user_reviews.items():
         try:
-            teams = gh.get_user_teams(user)
+            teams = gh.get_user_teams(user, org)
             for team in teams:
                 team_reviews[team].add(review)
         except Exception:
