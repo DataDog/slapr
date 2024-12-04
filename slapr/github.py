@@ -3,8 +3,11 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/)
 # Copyright 2023-present Datadog, Inc.
 
+import os
+import subprocess
+import requests
 import json
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Set
 
 from github import Github
 
@@ -30,24 +33,54 @@ class GithubBackend:
     def get_pr(self, pr_number: int) -> PullRequest:
         raise NotImplementedError  # pragma: no cover
 
+    def get_user_teams(self, user: str, org: str) -> List[str]:
+        raise NotImplementedError  # pragma: no cover
+
+    def read_file(self, repo: str, path: str) -> str:
+        raise NotImplementedError
+
 
 class WebGithubBackend(GithubBackend):
     def __init__(self, gh: Github, event_path: str, repo: str) -> None:
         self._gh = gh
         self.event_path = event_path
         self.repo = repo
+        self.gh_repo = gh.get_repo(repo)
+
+    def _graphql(self, query):
+        headers = {"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}"}
+        request = requests.post('https://api.github.com/graphql', json={'query': query}, headers=headers, timeout=10)
+        if request.status_code == 200:
+            return request.json()
+
+        raise RuntimeError(f"Query failed to run by returning code of {request.status_code}. {query}")
 
     def read_event(self) -> dict:
         with open(self.event_path) as f:
             return json.load(f)
 
     def get_pr_reviews(self, pr_number: int) -> List[Review]:
-        reviews = self._gh.get_repo(self.repo).get_pull(pr_number).get_reviews()
+        reviews = self.gh_repo.get_pull(pr_number).get_reviews()
         return [Review(state=review.state.lower(), username=review.user.login) for review in reviews]
 
     def get_pr(self, pr_number: int) -> PullRequest:
-        pr = self._gh.get_repo(self.repo).get_pull(pr_number)
+        pr = self.gh_repo.get_pull(pr_number)
         return PullRequest(state=pr.state, merged=pr.merged, mergeable_state=pr.mergeable_state)
+
+    def get_user_teams(self, user: str, org: str) -> List[str]:
+        """Get all the teams of a specific user."""
+
+        teams_json = self._graphql('{organization(login: "' + org + '") {teams(first: 100, userLogins: ["' + user + '"]) { edges {node {name}}}}}')
+        teams = [
+            t['node']['name'] for t in teams_json['data']['organization']['teams']['edges'] if t['node']['name'] != 'Dev'
+        ]
+
+        assert len(teams) > 0, f'No team found for user {user}'
+
+        return teams
+
+    def read_file(self, repo, path):
+        return self._gh.get_repo(repo).get_contents(path).decoded_content.decode('utf-8')
 
 
 class GithubClient:
@@ -62,3 +95,44 @@ class GithubClient:
 
     def get_pr(self, pr_number: int) -> PullRequest:
         return self._backend.get_pr(pr_number)
+
+    def get_user_teams(self, user: str, org: str) -> List[str]:
+        return self._backend.get_user_teams(user, org)
+
+    def read_file(self, repo, path) -> str:
+        return self._backend.read_file(repo, path)
+
+
+class TeamState:
+    APPROVED = 'approved'
+    APPROVED_COMMENTS = 'approved_comments'
+    COMMENTED = 'commented'
+    CHANGES_REQUESTED = 'changes_requested'
+
+    @staticmethod
+    def get_emoji(state, emoji_approved, emoji_commented, emoji_needs_change):
+        if state == TeamState.APPROVED:
+            return emoji_approved
+        if state == TeamState.APPROVED_COMMENTS:
+            # TODO(celianr): Add approved comment emoji and state
+            return emoji_approved
+        if state == TeamState.COMMENTED:
+            return emoji_commented
+        if state == TeamState.CHANGES_REQUESTED:
+            return emoji_needs_change
+
+        raise ValueError(f"Unknown state: {state}")
+
+
+def get_team_state(user_states: Set[str]) -> str:
+    """Deduce overall team state from all reviews of multiple members of the same team."""
+
+    if TeamState.CHANGES_REQUESTED in user_states:
+        return TeamState.CHANGES_REQUESTED
+
+    if TeamState.APPROVED in user_states:
+        if TeamState.COMMENTED in user_states:
+            return TeamState.APPROVED_COMMENTS
+        return TeamState.APPROVED
+
+    return TeamState.COMMENTED

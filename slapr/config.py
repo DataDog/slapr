@@ -3,7 +3,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/)
 # Copyright 2023-present Datadog, Inc.
 
-from typing import Callable, NamedTuple
+from typing import Callable, NamedTuple, Optional
 
 from .github import GithubClient
 from .slack import SlackClient
@@ -13,8 +13,15 @@ class Config(NamedTuple):
     slack_client: SlackClient
     github_client: GithubClient
 
-    slack_channel_id: str
+    slack_channel_id: Optional[str]
     slapr_bot_user_id: str  # TODO: document how to obtain this user ID, or automate its retrieval.
+    # If True, will find reviews on multiple team review channels.
+    slapr_multichannel: bool
+    # Path to a file containing a mapping from team names to Slack channel IDs
+    # Json file such as: {'github-team-name': 'slack-channel-id'} -> {'datadog-dev': 'C01ABCDEF02'}
+    slapr_multichannel_team_mapping: Optional[str]
+    # Github organization name to deduce teams
+    slapr_multichannel_org: str
 
     number_of_approvals_required: int
 
@@ -24,6 +31,9 @@ class Config(NamedTuple):
     emoji_merged: str
     emoji_closed: str
     emoji_commented: str
+
+    def verify(self):
+        assert (self.slapr_multichannel or self.slack_channel_id is not None) and not (self.slapr_multichannel and self.slack_channel_id is not None), 'Exactly one of `slapr_multichannel` and `slack_channel_id` must be set.'
 
     @property
     def emojis_by_review_step(self) -> Callable[[str], int]:

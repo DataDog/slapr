@@ -23,6 +23,8 @@ Slack API Token with following permissions
 - `reactions:read`
 - `reactions:write`
 
+If multi-channel is used, the Github token must have the permission to read members from the organization (check-out fine grained tokens).
+
 ## Emoji status
 
 | emoji                        | description                                                  |
@@ -35,6 +37,10 @@ Slack API Token with following permissions
 | `SLAPR_EMOJI_CLOSED`         | The PR is closed.                                            |
 
 ## Example Usage
+
+### Single-channel
+
+Here is an example to react on a single channel (one team / no CODEOWNERS).
 
 ```yaml
 name: Slack emoji PR updates
@@ -56,6 +62,43 @@ jobs:
         SLACK_API_TOKEN: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"
         SLAPR_BOT_USER_ID: UTMS06TPX
         SLAPR_NUMBER_OF_APPROVALS_REQUIRED: 2 # integer minimum=1 default=1. The number of approvals that are required for the approval emoji to be added in Slack
+```
+
+### Multi-channel
+
+If there are multiple teams, this configuration allows deducing teams given the CODEOWNERS file.
+
+```yaml
+name: Slapr Slack emoji PR updates
+on:
+  pull_request_review:
+    types: [submitted]
+  pull_request:
+    types: [closed]
+
+jobs:
+  run_slapr:
+    runs-on: ubuntu-latest
+    env:
+      SLAPR_MULTICHANNEL_TEAM_MAPPING: "slapr_team_mapping.json"
+      GITHUB_TOKEN: "${{ secrets.SLAPR_GITHUB_TOKEN }}"
+    steps:
+      # You can either have a static config file and checkout your repository or modify
+      # this step to dynamically generate the configuration
+      - name: Fetch team mapping file
+        run: |
+          echo '{"agent-devx-infra": "C06QEJ59XQF", "agent-devx-loops": "C07SHSHS3E3"}' > "$SLAPR_MULTICHANNEL_TEAM_MAPPING"
+          echo 'Channels are #celian-tests and #yet-another-celian-tests'
+      - uses: DataDog/slapr@master
+        env:
+          SLAPR_MULTICHANNEL: "true"
+          SLACK_API_TOKEN: "${{ secrets.SLACK_API_TOKEN }}"
+          SLAPR_BOT_USER_ID: "${{ secrets.SLAPR_BOT_USER_ID }}"
+          SLAPR_EMOJI_REVIEW_STARTED: "review_started"
+          SLAPR_EMOJI_APPROVED: "pr-approved-"
+          SLAPR_EMOJI_CHANGES_REQUESTED: "changes_requested"
+          SLAPR_EMOJI_MERGED: "merged"
+          SLAPR_EMOJI_CLOSED: "closed"
 ```
 
 ## Troubleshoot

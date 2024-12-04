@@ -3,37 +3,20 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/)
 # Copyright 2023-present Datadog, Inc.
 
+import sys
+
 from . import emojis
 from .config import Config
 
 
-def main(config: Config) -> None:
-    slack = config.slack_client
-    github = config.github_client
+def channel_react(slack, pr_url, config, review_emoji, pr, channel_id):
+    """React to `channel_id` with `review_emoji` for PR review `pr_url`."""
 
-    event = github.read_event()
+    print("Reacting to channel", channel_id, "with emoji", review_emoji)
 
-    is_fork: bool = event["pull_request"]["head"]["repo"]["fork"]
-
-    if is_fork:
-        print("Fork PRs are not supported.")
-        return
-
-    pr_number: int = event["pull_request"]["number"]
-    pr = github.get_pr(pr_number=pr_number)
-    reviews = github.get_pr_reviews(pr_number=pr_number)
-    review_emoji = emojis.get_for_reviews(
-        reviews,
-        emoji_commented=config.emoji_commented,
-        emoji_needs_change=config.emoji_needs_change,
-        emoji_approved=config.emoji_approved,
-        number_of_approvals_required=config.number_of_approvals_required,
+    timestamp = slack.find_timestamp_of_review_requested_message(
+        pr_url=pr_url, channel_id=channel_id
     )
-
-    pr_url: str = event["pull_request"]["html_url"]
-    print(f"Event PR: {pr_url}")
-
-    timestamp = slack.find_timestamp_of_review_requested_message(pr_url=pr_url, channel_id=config.slack_channel_id)
     print(f"Slack message timestamp: {timestamp}")
 
     if timestamp is None:
@@ -41,7 +24,7 @@ def main(config: Config) -> None:
         return
 
     existing_emojis = slack.get_emojis_for_user(
-        timestamp=timestamp, channel_id=config.slack_channel_id, user_id=config.slapr_bot_user_id
+        timestamp=timestamp, channel_id=channel_id, user_id=config.slapr_bot_user_id
     )
     print(f"Existing emojis: {', '.join(existing_emojis)}")
 
@@ -60,7 +43,9 @@ def main(config: Config) -> None:
         new_emojis.add(config.emoji_closed)
 
     # Add emojis
-    emojis_to_add, emojis_to_remove = emojis.diff(new_emojis=new_emojis, existing_emojis=existing_emojis)
+    emojis_to_add, emojis_to_remove = emojis.diff(
+        new_emojis=new_emojis, existing_emojis=existing_emojis
+    )
 
     sorted_emojis_to_add = sorted(emojis_to_add, key=config.emojis_by_review_step)
 
@@ -71,12 +56,74 @@ def main(config: Config) -> None:
         slack.add_reaction(
             timestamp=timestamp,
             emoji=review_emoji,
-            channel_id=config.slack_channel_id,
+            channel_id=channel_id,
         )
 
     for review_emoji in emojis_to_remove:
         slack.remove_reaction(
             timestamp=timestamp,
             emoji=review_emoji,
-            channel_id=config.slack_channel_id,
+            channel_id=channel_id,
         )
+
+
+def main(config: Config) -> None:
+    slack = config.slack_client
+    github = config.github_client
+
+    event = github.read_event()
+
+    is_fork: bool = event["pull_request"]["head"]["repo"]["fork"]
+
+    if is_fork:
+        print("Fork PRs are not supported.")
+        return
+
+    pr_number: int = event["pull_request"]["number"]
+    pr = github.get_pr(pr_number=pr_number)
+    reviews = github.get_pr_reviews(pr_number=pr_number)
+
+    pr_url: str = event["pull_request"]["html_url"]
+    print(f"Event PR: {pr_url}")
+
+    if config.slapr_multichannel:
+        print("Multi channel enabled")
+
+        from .multichannel import get_team_to_channel, get_channel_reviews
+        from .github import TeamState
+
+        assert (
+            config.slapr_multichannel_team_mapping is not None
+        ), "You must provide a team mapping JSON file."
+
+        # Read config file to get github team -> slack channel mapping
+        team_to_channel = get_team_to_channel(config.slapr_multichannel_team_mapping)
+
+        # Get slack channel id -> review state mapping from the PR
+        channel_reviews = get_channel_reviews(reviews, team_to_channel, github, config.slapr_multichannel_org)
+
+        # Update each channel
+        for channel, state in channel_reviews.items():
+            print(f"Updating review for channel {channel} with state {state}")
+            emoji = TeamState.get_emoji(
+                state,
+                config.emoji_approved,
+                config.emoji_commented,
+                config.emoji_needs_change,
+            )
+            channel_react(slack, pr_url, config, emoji, pr, channel)
+
+        if not channel_reviews:
+            print(
+                f"Warning: No review slack channels found for PR {pr_url}",
+                file=sys.stderr,
+            )
+    else:
+        review_emoji = emojis.get_for_reviews(
+            reviews,
+            emoji_commented=config.emoji_commented,
+            emoji_needs_change=config.emoji_needs_change,
+            emoji_approved=config.emoji_approved,
+            number_of_approvals_required=config.number_of_approvals_required,
+        )
+        channel_react(slack, pr_url, config, review_emoji, pr, config.slack_channel_id)

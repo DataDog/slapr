@@ -4,6 +4,7 @@
 # Copyright 2023-present Datadog, Inc.
 
 import re
+import sys
 from typing import List, NamedTuple, Optional, Set
 
 import slack_sdk
@@ -64,7 +65,7 @@ class WebSlackBackend(SlackBackend):
             self._client.reactions_add(channel=channel_id, name=emoji, timestamp=timestamp)
         except SlackApiError as e:
             if e.response['error'] == 'already_reacted':
-                print(f'Warning: Message {timestamp} has already emote {emoji} within channel {channel_id}')
+                print(f'Warning: Message {timestamp} has already emote {emoji} within channel {channel_id}', file=sys.stderr)
                 # Ignore already reacted errors
                 pass
             else:
