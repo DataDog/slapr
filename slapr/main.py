@@ -86,10 +86,15 @@ def main(config: Config) -> None:
         from .multichannel import get_team_to_channel, get_channel_reviews
         from .github import TeamState
 
-        team_to_channel = get_team_to_channel()
+        assert config.slapr_multichannel_team_mapping is not None, 'You must provide a team mapping JSON file.'
+        team_to_channel = get_team_to_channel(config.slapr_multichannel_team_mapping)
+        # TODO A
+        print(len(team_to_channel))
+        team_to_channel = {'agent-devx-infra': 'C06QEJ59XQF', 'agent-shared-components': 'C07SHSHS3E3'}
+
         channel_reviews = get_channel_reviews(reviews, team_to_channel, github)
         # print('test:')
-        # print(channel_reviews)
+        print(channel_reviews)
         # exit()
         # TODO
         channel_reviews = {'C06QEJ59XQF': TeamState.CHANGES_REQUESTED, 'C07SHSHS3E3': TeamState.APPROVED}

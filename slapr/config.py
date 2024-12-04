@@ -17,6 +17,9 @@ class Config(NamedTuple):
     slapr_bot_user_id: str  # TODO: document how to obtain this user ID, or automate its retrieval.
     # If True, will find reviews on multiple team review channels.
     slapr_multichannel: bool
+    # Path to a file containing a mapping from team names to Slack channel IDs
+    # Json file such as: {'github-team-name': 'slack-channel-id'} -> {'datadog-dev': 'C01ABCDEF02'}
+    slapr_multichannel_team_mapping: str | None
 
     number_of_approvals_required: int
 

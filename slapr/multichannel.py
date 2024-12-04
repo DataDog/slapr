@@ -1,4 +1,5 @@
 from collections import defaultdict
+import json
 import os
 
 from .github import GithubClient, get_team_state
@@ -34,13 +35,12 @@ def get_channel_reviews(reviews, team_to_channel, gh: GithubClient):
     return channel_reviews
 
 
-def get_team_to_channel():
+def get_team_to_channel(team_mapping_file):
     """Get a mapping team -> slack channel by reading the SLAPR_TEAM_CHANNEL_* environment variables."""
 
-    mapping = {}
-    for env, channel in os.environ.items():
-        if env.startswith('SLAPR_TEAM_CHANNEL_'):
-            team_name = env[len('SLAPR_TEAM_CHANNEL_'):].lower().replace('_', '-')
-            mapping[team_name] = channel
+    with open(team_mapping_file) as f:
+        team_to_channel = json.load(f)
 
-    return mapping
+    assert len(team_to_channel) > 0, 'Team mapping file is empty.'
+
+    return team_to_channel
