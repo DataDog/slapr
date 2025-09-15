@@ -12,12 +12,14 @@ permissions: {}
 jobs:
   run_slapr:
     runs-on: ubuntu-latest
+    environment:
+      name: main
     steps:
-    - uses: DataDog/slapr@master
+    - uses: DataDog/slapr@f4337a20eedf6b840f6d85ee2399f1ee86f109d7 # master
       env:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        SLACK_CHANNEL_ID: C06P4TAJ2Q6
-        SLACK_API_TOKEN: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"
+        SLACK_CHANNEL_ID: C06P2KX149M
+        SLACK_API_TOKEN: "${{ secrets.SLACK_TOKEN }}"
         SLAPR_BOT_USER_ID: UTMS06TPX
         SLAPR_EMOJI_REVIEW_STARTED: "review_started"
         SLAPR_EMOJI_APPROVED: "approved"
