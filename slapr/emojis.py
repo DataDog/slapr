@@ -11,7 +11,7 @@ from .github import Review
 
 def get_for_reviews(
     reviews: List[Review],
-    emoji_commented: int,
+    emoji_commented: str,
     emoji_needs_change: str,
     emoji_approved: str,
     number_of_approvals_required: int,
