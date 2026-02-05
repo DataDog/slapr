@@ -16,7 +16,6 @@ def get_for_reviews(
     emoji_approved: str,
     number_of_approvals_required: int,
 ) -> Optional[str]:
-
     reviews_by_author = {
         username: list(reviews) for username, reviews in itertools.groupby(reviews, key=lambda review: review.username)
     }

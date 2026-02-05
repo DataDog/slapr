@@ -1,2 +1,45 @@
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/)
+# Copyright 2023-present Datadog, Inc.
+
+[project]
+name = "slapr"
+version = "0.0.0"
+description = "Add emoji on Slack posts on PR updates"
+requires-python = ">=3.13"
+dependencies = [
+    "slack_sdk>=3.27.1,<4",
+    "pygithub>=2,<3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.15.0",
+    "ty>=0.0.15",
+]
+
+[tool.pytest.ini_options]
+addopts = "--cov=slapr --cov=tests --cov-report=term-missing -rxXs"
+
+[tool.mypy]
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
 [tool.black]
 line-length = 120
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-wrap-aliases = true
+known-first-party = ["slapr"]
+known-third-party = ["github", "slack"]

@@ -1,5 +1,29 @@
+# Unless explicitly stated otherwise all files in this repository are licensed
+# under the Apache License Version 2.0.
+# This product includes software developed at Datadog (https://www.datadoghq.com/)
+# Copyright 2023-present Datadog, Inc.
+
 name: 'Hack-A-Dog Slapr'
 description: 'Add emoji on Slack posts on PR updates'
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version-file: ${{ github.action_path }}/.python-version
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        enable-cache: true
+
+    - name: Install dependencies
+      shell: bash
+      run: uv sync --frozen --no-dev
+      working-directory: ${{ github.action_path }}
+
+    - name: Run slapr
+      shell: bash
+      run: uv run python -m slapr
+      working-directory: ${{ github.action_path }}

@@ -4,6 +4,7 @@ __pycache__/
 .mypy_cache
 build/
 venv/
+.venv/
 .idea
 *.egg-info
 .coverage

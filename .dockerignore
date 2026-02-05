@@ -1,8 +1,0 @@
-.git
-__pycache__/
-*.pyc
-venv/
-env/
-.mypy_cache/
-.vscode/
-.idea/
