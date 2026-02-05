@@ -9,6 +9,11 @@ from typing import List, Optional, Set, Tuple
 from .github import Review
 
 
+def is_valid_emoji(emoji: str) -> bool:
+    """Check if emoji string is valid (non-empty)."""
+    return bool(emoji.strip())
+
+
 def get_for_reviews(
     reviews: List[Review],
     emoji_commented: str,

@@ -62,7 +62,9 @@ def main(config: Config) -> None:
     # Add emojis
     emojis_to_add, emojis_to_remove = emojis.diff(new_emojis=new_emojis, existing_emojis=existing_emojis)
 
-    sorted_emojis_to_add = sorted(emojis_to_add, key=config.emojis_by_review_step)
+    sorted_emojis_to_add = sorted(
+        [emoji for emoji in emojis_to_add if emojis.is_valid_emoji(emoji)], key=config.emojis_by_review_step
+    )
 
     print(f"Emojis to add (ordered) : {', '.join(sorted_emojis_to_add)}")
     print(f"Emojis to remove        : {', '.join(emojis_to_remove)}")
