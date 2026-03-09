@@ -11,10 +11,23 @@ import slack_sdk
 from .config import Config
 from .github import GithubClient, WebGithubBackend
 from .main import main
+from .review_map import ReviewMap
 from .slack import SlackClient, WebSlackBackend
 
+slack_backend = WebSlackBackend(client=slack_sdk.WebClient(os.environ["SLACK_API_TOKEN"]))
+slack_client = SlackClient(backend=slack_backend)
+
+review_map = None
+review_map_path = os.environ.get("SLAPR_REVIEW_MAP")
+if review_map_path:
+    review_map = ReviewMap.load(
+        file_path=review_map_path,
+        slack_client=slack_client,
+        default_channel_id=os.environ["SLACK_CHANNEL_ID"],
+    )
+
 config = Config(
-    slack_client=SlackClient(backend=WebSlackBackend(client=slack_sdk.WebClient(os.environ["SLACK_API_TOKEN"]))),
+    slack_client=slack_client,
     github_client=GithubClient(
         backend=WebGithubBackend(
             gh=github.Github(os.environ["GITHUB_TOKEN"]),
@@ -31,6 +44,7 @@ config = Config(
     emoji_merged=os.environ.get("SLAPR_EMOJI_MERGED", "merged"),
     emoji_closed=os.environ.get("SLAPR_EMOJI_CLOSED", "closed"),
     emoji_commented=os.environ.get("SLAPR_EMOJI_COMMENTED", "comment"),
+    review_map=review_map,
 )
 
 main(config)

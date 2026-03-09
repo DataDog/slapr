@@ -30,6 +30,12 @@ class GithubBackend:
     def get_pr(self, pr_number: int) -> PullRequest:
         raise NotImplementedError  # pragma: no cover
 
+    def is_team_member(self, org: str, team_slug: str, username: str) -> bool:
+        raise NotImplementedError  # pragma: no cover
+
+    def get_all_requested_teams(self, pr_number: int) -> List[str]:
+        raise NotImplementedError  # pragma: no cover
+
 
 class WebGithubBackend(GithubBackend):
     def __init__(self, gh: Github, event_path: str, repo: str) -> None:
@@ -49,6 +55,21 @@ class WebGithubBackend(GithubBackend):
         pr = self._gh.get_repo(self.repo).get_pull(pr_number)
         return PullRequest(state=pr.state, merged=pr.merged, mergeable_state=pr.mergeable_state)
 
+    def is_team_member(self, org: str, team_slug: str, username: str) -> bool:
+        org_obj = self._gh.get_organization(org)
+        team = org_obj.get_team_by_slug(team_slug)
+        user = self._gh.get_user(username)
+        return team.has_in_members(user)
+
+    def get_all_requested_teams(self, pr_number: int) -> List[str]:
+        """Get all teams ever requested for review using the Timeline API."""
+        teams = set()
+        pr = self._gh.get_repo(self.repo).get_pull(pr_number)
+        for event in pr.get_issue_events():
+            if event.event == "review_requested" and "requested_team" in event.raw_data:
+                teams.add(event.raw_data["requested_team"]["slug"])
+        return list(teams)
+
 
 class GithubClient:
     def __init__(self, backend: GithubBackend) -> None:
@@ -62,3 +83,9 @@ class GithubClient:
 
     def get_pr(self, pr_number: int) -> PullRequest:
         return self._backend.get_pr(pr_number)
+
+    def is_team_member(self, org: str, team_slug: str, username: str) -> bool:
+        return self._backend.is_team_member(org, team_slug, username)
+
+    def get_all_requested_teams(self, pr_number: int) -> List[str]:
+        return self._backend.get_all_requested_teams(pr_number)

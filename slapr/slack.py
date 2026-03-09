@@ -4,7 +4,7 @@
 # Copyright 2023-present Datadog, Inc.
 
 import re
-from typing import List, NamedTuple, Optional, Set
+from typing import Dict, List, NamedTuple, Optional, Set
 
 import slack_sdk
 from slack_sdk.errors import SlackApiError
@@ -33,6 +33,9 @@ class SlackBackend:
         raise NotImplementedError  # pragma: no cover
 
     def remove_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
+        raise NotImplementedError  # pragma: no cover
+
+    def resolve_channel_names(self, names: Set[str]) -> Dict[str, str]:
         raise NotImplementedError  # pragma: no cover
 
 
@@ -73,6 +76,26 @@ class WebSlackBackend(SlackBackend):
     def remove_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
         self._client.reactions_remove(channel=channel_id, name=emoji, timestamp=timestamp)
 
+    def resolve_channel_names(self, names: Set[str]) -> Dict[str, str]:
+        """Resolve channel names to channel IDs using conversations_list with pagination."""
+        remaining = set(names)
+        result = {}
+        cursor = None
+        while remaining:
+            kwargs = {"types": "public_channel", "limit": 200}
+            if cursor:
+                kwargs["cursor"] = cursor
+            response = self._client.conversations_list(**kwargs)
+            assert response["ok"]
+            for channel in response["channels"]:
+                if channel["name"] in remaining:
+                    result[channel["name"]] = channel["id"]
+                    remaining.discard(channel["name"])
+            cursor = response.get("response_metadata", {}).get("next_cursor")
+            if not cursor:
+                break
+        return result
+
 
 class SlackClient:
     def __init__(self, *, backend: SlackBackend) -> None:
@@ -108,3 +131,6 @@ class SlackClient:
 
     def remove_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
         self._backend.remove_reaction(timestamp=timestamp, emoji=emoji, channel_id=channel_id)
+
+    def resolve_channel_names(self, names: Set[str]) -> Dict[str, str]:
+        return self._backend.resolve_channel_names(names)

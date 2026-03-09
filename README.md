@@ -34,6 +34,29 @@ Slack API Token with following permissions
 | `SLAPR_EMOJI_MERGED`         | The PR is merged.                                            |
 | `SLAPR_EMOJI_CLOSED`         | The PR is closed.                                            |
 
+## Review Map (multi-channel routing)
+
+By default, slapr posts emoji reactions to a single Slack channel (`SLACK_CHANNEL_ID`). With the `review-map` input, you can route reactions to different Slack channels based on which GitHub teams are requested for review.
+
+Create a YAML file mapping GitHub teams to Slack channels:
+
+```yaml
+# review-map.yaml
+'@datadog/agent-apm': '#apm-agent'
+'@datadog/agent-build': '#agent-build'
+'@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'  # falls back to SLACK_CHANNEL_ID
+```
+
+- Channel names (e.g. `#apm-agent`) are resolved to IDs via the Slack API at startup.
+- Use `DEFAULT_SLACK_CHANNEL` to route a team to the default `SLACK_CHANNEL_ID`.
+- You can also use raw channel IDs (e.g. `C01234ABCDE`) directly.
+
+On review events, slapr checks the reviewer's team membership (requires `read:org` scope on the GitHub token) and posts to the matching channel. On merge/close events, it uses the GitHub Timeline API to find all teams that were ever requested and posts to each of their channels.
+
+When `review-map` is not set, behavior is identical to before (single channel).
+
+**Note:** Team membership checks require the `read:org` scope. The default `GITHUB_TOKEN` does not have this — you need a PAT or GitHub App token.
+
 ## Example Usage
 
 ```yaml
@@ -49,6 +72,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: DataDog/slapr@master
+      with:
+        review-map: .github/review-map.yaml  # optional
       env:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         GITHUB_REPO: DataDog/slapr

@@ -1,5 +1,11 @@
 name: 'Hack-A-Dog Slapr'
 description: 'Add emoji on Slack posts on PR updates'
+inputs:
+  review-map:
+    description: 'Path to a YAML file mapping GitHub teams to Slack channels'
+    required: false
 runs:
   using: 'docker'
   image: 'Dockerfile'
+  env:
+    SLAPR_REVIEW_MAP: ${{ inputs.review-map }}
