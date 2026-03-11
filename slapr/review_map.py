@@ -6,6 +6,7 @@
 from typing import Dict, List, Optional, Set
 
 import yaml
+from slack_sdk.errors import SlackApiError
 
 
 DEFAULT_SLACK_CHANNEL = "DEFAULT_SLACK_CHANNEL"
@@ -72,7 +73,12 @@ class ReviewMap:
         # Resolve channel names to IDs (only for entries without an inline ID)
         name_to_id = {}
         if names_to_resolve:
-            name_to_id = slack_client.resolve_channel_names(names_to_resolve)
+            try:
+                name_to_id = slack_client.resolve_channel_names(names_to_resolve)
+            except SlackApiError as e:
+                print(f"Warning: Failed to resolve channel names via Slack API: {e}")
+                print("Entries without inline channel IDs will be skipped. "
+                      "Use '#channel-name:CHANNEL_ID' format to avoid this.")
 
         # Build the resolved map
         team_to_channel = {}
