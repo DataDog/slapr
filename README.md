@@ -20,6 +20,7 @@ Examples:
 Slack API Token with following permissions
 
 - `channels:history`
+- `channels:read` (required when using review-map)
 - `reactions:read`
 - `reactions:write`
 
@@ -42,12 +43,14 @@ Create a YAML file mapping GitHub teams to Slack channels:
 
 ```yaml
 # review-map.yaml
-'@datadog/agent-apm': '#apm-agent'
-'@datadog/agent-build': '#agent-build'
-'@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'  # falls back to SLACK_CHANNEL_ID
+'@datadog/agent-apm': '#apm-agent:C01234ABCDE'  # channel name + ID (preferred, no API call)
+'@datadog/agent-build': '#agent-build'            # resolved via Slack API at startup
+'@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'      # falls back to SLACK_CHANNEL_ID
+'@datadog/agent-platform': 'C09876FGHIJ'          # raw channel ID
 ```
 
-- Channel names (e.g. `#apm-agent`) are resolved to IDs via the Slack API at startup.
+- **Preferred format**: `#channel-name:CHANNEL_ID` — includes both name (for readability) and ID (avoids Slack API rate limits).
+- Channel names without an ID (e.g. `#apm-agent`) are resolved via the Slack API at startup (requires `channels:read` scope).
 - Use `DEFAULT_SLACK_CHANNEL` to route a team to the default `SLACK_CHANNEL_ID`.
 - You can also use raw channel IDs (e.g. `C01234ABCDE`) directly.
 

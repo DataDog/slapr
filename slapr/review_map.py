@@ -23,13 +23,36 @@ class ReviewMap:
         self.default_channel_id = default_channel_id
 
     @staticmethod
+    def _parse_channel_ref(channel_ref: str):
+        """Parse a channel reference value from the YAML map.
+
+        Supported formats:
+            '#channel-name:C01234ABCDE'  -> (channel_id='C01234ABCDE', needs_resolve=False)
+            '#channel-name'              -> (channel_name='channel-name', needs_resolve=True)
+            'C01234ABCDE'                -> (channel_id='C01234ABCDE', needs_resolve=False)
+            'DEFAULT_SLACK_CHANNEL'      -> (sentinel, needs_resolve=False)
+        """
+        if channel_ref == DEFAULT_SLACK_CHANNEL:
+            return DEFAULT_SLACK_CHANNEL, False
+        if channel_ref.startswith("#") and ":" in channel_ref:
+            # Format: '#channel-name:C01234ABCDE'
+            channel_id = channel_ref.split(":", 1)[1]
+            return channel_id, False
+        if channel_ref.startswith("#"):
+            # Format: '#channel-name' — needs API resolution
+            return channel_ref.lstrip("#"), True
+        # Raw channel ID
+        return channel_ref, False
+
+    @staticmethod
     def load(file_path: str, slack_client, default_channel_id: str) -> "ReviewMap":
         """Load YAML mapping file and resolve channel names to IDs via Slack API.
 
         YAML format:
-            '@datadog/agent-apm': '#apm-agent'
-            '@datadog/agent-build': '#agent-build'
+            '@datadog/agent-apm': '#apm-agent:C01234ABCDE'   # channel name + ID (preferred)
+            '@datadog/agent-build': '#agent-build'             # resolved via Slack API
             '@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'
+            '@datadog/agent-platform': 'C09876FGHIJ'           # raw channel ID
         """
         with open(file_path) as f:
             raw_map = yaml.safe_load(f)
@@ -37,32 +60,33 @@ class ReviewMap:
         if not raw_map:
             return ReviewMap(team_to_channel={}, default_channel_id=default_channel_id)
 
-        # Collect channel names that need resolution (strip '#' prefix)
-        channel_names = set()
-        for channel_ref in raw_map.values():
-            if channel_ref != DEFAULT_SLACK_CHANNEL and channel_ref.startswith("#"):
-                channel_names.add(channel_ref.lstrip("#"))
+        # First pass: parse all refs, collect names that need resolution
+        parsed = {}
+        names_to_resolve = set()
+        for team, channel_ref in raw_map.items():
+            value, needs_resolve = ReviewMap._parse_channel_ref(channel_ref)
+            parsed[team] = (value, needs_resolve)
+            if needs_resolve:
+                names_to_resolve.add(value)
 
-        # Resolve channel names to IDs
+        # Resolve channel names to IDs (only for entries without an inline ID)
         name_to_id = {}
-        if channel_names:
-            name_to_id = slack_client.resolve_channel_names(channel_names)
+        if names_to_resolve:
+            name_to_id = slack_client.resolve_channel_names(names_to_resolve)
 
         # Build the resolved map
         team_to_channel = {}
-        for team, channel_ref in raw_map.items():
+        for team, (value, needs_resolve) in parsed.items():
             team_key = team.lower()
-            if channel_ref == DEFAULT_SLACK_CHANNEL:
+            if value == DEFAULT_SLACK_CHANNEL:
                 team_to_channel[team_key] = default_channel_id
-            elif channel_ref.startswith("#"):
-                channel_name = channel_ref.lstrip("#")
-                if channel_name in name_to_id:
-                    team_to_channel[team_key] = name_to_id[channel_name]
+            elif needs_resolve:
+                if value in name_to_id:
+                    team_to_channel[team_key] = name_to_id[value]
                 else:
-                    print(f"Warning: Could not resolve channel {channel_ref} for team {team}, skipping")
+                    print(f"Warning: Could not resolve channel #{value} for team {team}, skipping")
             else:
-                # Assume it's already a channel ID
-                team_to_channel[team_key] = channel_ref
+                team_to_channel[team_key] = value
 
         return ReviewMap(team_to_channel=team_to_channel, default_channel_id=default_channel_id)
 
