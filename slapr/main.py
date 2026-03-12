@@ -130,12 +130,22 @@ def _resolve_target_channels(
     reviewer = event.get("review", {}).get("user", {}).get("login")
     requested_teams = [t["slug"] for t in event["pull_request"].get("requested_teams", [])]
 
+    print(f"Reviewer: {reviewer}")
+    print(f"Requested teams: {', '.join(requested_teams)}")
+
     target_channels = set()
     for team_slug in requested_teams:
         full_team = f"@{org}/{team_slug}".lower()
-        if full_team in review_map.team_to_channel and reviewer and github.is_team_member(org, team_slug, reviewer):
-            target_channels.add((review_map.team_to_channel[full_team], team_slug))
+        if full_team not in review_map.team_to_channel:
+            print(f"  Team {full_team}: not in review map, skipping")
+            continue
+        channel_id = review_map.team_to_channel[full_team]
+        is_member = reviewer and github.is_team_member(org, team_slug, reviewer)
+        print(f"  Team {full_team}: channel={channel_id}, {reviewer} is_member={is_member}")
+        if is_member:
+            target_channels.add((channel_id, team_slug))
 
     if target_channels:
         return target_channels
+    print(f"No team match, falling back to default channel {config.slack_channel_id}")
     return {(config.slack_channel_id, None)}
