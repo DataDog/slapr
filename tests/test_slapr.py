@@ -393,6 +393,7 @@ def test_merge_with_review_map_targets_requested_team_channels():
         event=MOCK_EVENT_MERGE_WITH_OWNER,
         pr=PullRequest(state="closed", merged=True, mergeable_state="clean"),
         requested_teams_timeline=["agent-apm"],
+        team_members={"agent-apm": ["alice"]},
     )
 
     review_map = ReviewMap(
@@ -418,3 +419,60 @@ def test_merge_with_review_map_targets_requested_team_channels():
 
     assert "test_approved" in slack_backend.channel_emojis["C_APM"]
     assert "test_merged" in slack_backend.channel_emojis["C_APM"]
+
+
+def test_review_map_filters_reviews_to_team_members_only():
+    """When a non-team-member approved and a team member comments,
+    the team channel should show 'commented', not 'approved'."""
+    messages = [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="ts-apm")]
+
+    event = {
+        "pull_request": {
+            "number": 42,
+            "html_url": "https://github.com/example/repo/pull/42",
+            "head": {"repo": {"fork": False, "owner": {"login": "datadog"}}},
+            "requested_teams": [{"slug": "agent-apm"}],
+        },
+        "review": {
+            "user": {"login": "bob"},  # bob is a team member, submitting a comment
+        },
+    }
+
+    slack_backend = MockSlackBackend(
+        messages=[],
+        target_message=messages[0],
+        reactions=[],
+        channel_messages={"C_APM": messages},
+        channel_reactions={"C_APM": []},
+    )
+    github_backend = MockGithubBackend(
+        # alice approved (not a team member), bob commented (team member)
+        reviews=[Review(state="approved", username="alice"), Review(state="commented", username="bob")],
+        event=event,
+        pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
+        team_members={"agent-apm": ["bob"]},  # only bob is in agent-apm
+    )
+
+    review_map = ReviewMap(
+        team_to_channel={"@datadog/agent-apm": "C_APM"},
+        default_channel_id="C_DEFAULT",
+    )
+
+    config = Config(
+        slack_client=SlackClient(backend=slack_backend),
+        github_client=GithubClient(backend=github_backend),
+        slack_channel_id="C_DEFAULT",
+        slapr_bot_user_id="U1234",
+        number_of_approvals_required=1,
+        emoji_review_started="test_review_started",
+        emoji_approved="test_approved",
+        emoji_needs_change="test_needs_change",
+        emoji_merged="test_merged",
+        emoji_closed="test_closed",
+        emoji_commented="test_commented",
+        review_map=review_map,
+    )
+    slapr.main(config)
+
+    # Should show 'commented' (bob's review), NOT 'approved' (alice is not in the team)
+    assert slack_backend.channel_emojis["C_APM"] == ["test_review_started", "test_commented"]
