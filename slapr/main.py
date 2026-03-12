@@ -53,7 +53,7 @@ def main(config: Config) -> None:
             number_of_approvals_required=config.number_of_approvals_required,
         )
 
-        new_emojis = {config.emoji_review_started}
+        new_emojis = set() if pr.state == "closed" else {config.emoji_review_started}
         if review_emoji:
             new_emojis.add(review_emoji)
 
@@ -63,6 +63,34 @@ def main(config: Config) -> None:
             new_emojis.add(config.emoji_closed)
 
         _apply_emojis_to_channel(config, slack, new_emojis, pr_url, channel_id)
+
+    # Broadcast review_started to ALL requested team channels, not just the reviewer's.
+    # Only on the first review (len==1) — subsequent reviews already have review_started.
+    if config.review_map is not None and not pr.merged and pr.state != "closed" and len(reviews) == 1:
+        all_channels = _all_requested_team_channels(config, github, event, pr_number)
+        already_processed = {ch for ch, _ in target_channels}
+        for channel_id in all_channels - already_processed:
+            print(f"Broadcasting review_started to channel {channel_id}")
+            _apply_emojis_to_channel(
+                config, slack, {config.emoji_review_started}, pr_url, channel_id
+            )
+
+
+def _all_requested_team_channels(
+    config: Config, github: GithubClient, event: dict, pr_number: int
+) -> Set[str]:
+    """Return all Slack channel IDs for teams requested on this PR."""
+    review_map = config.review_map
+    if review_map is None:
+        return set()
+    org = event["pull_request"]["head"]["repo"]["owner"]["login"]
+    all_teams = github.get_all_requested_teams(pr_number)
+    channels = set()
+    for team_slug in all_teams:
+        full_team = f"@{org}/{team_slug}".lower()
+        if full_team in review_map.team_to_channel:
+            channels.add(review_map.team_to_channel[full_team])
+    return channels
 
 
 def _apply_emojis_to_channel(
@@ -103,6 +131,11 @@ def _resolve_target_channels(
 ) -> Set[Tuple[str, Optional[str]]]:
     """Determine which Slack channels to target based on the review map.
 
+    Use the Timeline API to get all teams ever requested, since submitted reviews
+    are removed from the event payload's requested_teams list.
+    When PR is closed (merged or closed), add all requested channels.
+    Otherwise add only channels the reviewer belongs to
+
     Returns a set of (channel_id, team_slug) tuples. team_slug is None
     for legacy mode (no review-map) or fallback to default channel.
     """
@@ -111,26 +144,9 @@ def _resolve_target_channels(
         return {(config.slack_channel_id, None)}
 
     org = event["pull_request"]["head"]["repo"]["owner"]["login"]
-
     pr_state = event["pull_request"].get("state", "open")
-
-    # For merge/close events, use Timeline API to get all teams ever requested
-    if pr_state == "closed":
-        all_requested_teams = github.get_all_requested_teams(pr_number)
-        target_channels = set()
-        for team_slug in all_requested_teams:
-            full_team = f"@{org}/{team_slug}".lower()
-            if full_team in review_map.team_to_channel:
-                target_channels.add((review_map.team_to_channel[full_team], team_slug))
-        if target_channels:
-            return target_channels
-        return {(config.slack_channel_id, None)}
-
-    # For review events, determine target channels from reviewer's team membership
-    # Use the Timeline API to get all teams ever requested, since submitted reviews
-    # are removed from the event payload's requested_teams list.
-    reviewer = event.get("review", {}).get("user", {}).get("login")
     requested_teams = github.get_all_requested_teams(pr_number)
+    reviewer = event.get("review", {}).get("user", {}).get("login")
 
     print(f"Reviewer: {reviewer}")
     print(f"Requested teams (from timeline): {', '.join(requested_teams)}")
@@ -142,10 +158,15 @@ def _resolve_target_channels(
             print(f"  Team {full_team}: not in review map, skipping")
             continue
         channel_id = review_map.team_to_channel[full_team]
-        is_member = reviewer and github.is_team_member(org, team_slug, reviewer)
-        print(f"  Team {full_team}: channel={channel_id}, {reviewer} is_member={is_member}")
-        if is_member:
+        if pr_state == "closed":
+            # Add all channels in this case.
             target_channels.add((channel_id, team_slug))
+        else:
+            # Or select only channels the reviewer belongs to.
+            is_member = reviewer and github.is_team_member(org, team_slug, reviewer)
+            print(f"  Team {full_team}: channel={channel_id}, {reviewer} is_member={is_member}")
+            if is_member:
+                target_channels.add((channel_id, team_slug))
 
     if target_channels:
         return target_channels

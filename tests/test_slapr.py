@@ -214,7 +214,7 @@ def test_on_pull_request_review(
                 Reaction(emoji="test_review_started", user_ids=["U1234"]),
                 Reaction(emoji="test_approved", user_ids=["U1234"]),
             ],
-            ["test_review_started", "test_approved", "test_merged"],
+            ["test_approved", "test_merged"],
             id="merge-approved-pr",
         ),
         pytest.param(
@@ -224,8 +224,8 @@ def test_on_pull_request_review(
                 Reaction(emoji="test_review_started", user_ids=["U1234"]),
                 Reaction(emoji="test_approved", user_ids=["U1234"]),
             ],
-            ["test_review_started", "test_approved", "test_closed"],
-            id="merge-approved-pr",
+            ["test_approved", "test_closed"],
+            id="close-approved-pr",
         ),
     ],
 )
@@ -478,3 +478,63 @@ def test_review_map_filters_reviews_to_team_members_only():
 
     # Should show 'commented' (bob's review), NOT 'approved' (alice is not in the team)
     assert slack_backend.channel_emojis["C_APM"] == ["test_review_started", "test_commented"]
+
+
+def test_review_started_broadcast_to_all_requested_team_channels():
+    """When a reviewer from team-A approves, review_started should also appear
+    on team-B's channel if team-B was requested for review."""
+    messages_apm = [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="ts-apm")]
+    messages_build = [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="ts-build")]
+
+    event = {
+        "pull_request": {
+            "number": 42,
+            "html_url": "https://github.com/example/repo/pull/42",
+            "head": {"repo": {"fork": False, "owner": {"login": "datadog"}}},
+            "requested_teams": [{"slug": "agent-apm"}, {"slug": "agent-build"}],
+        },
+        "review": {
+            "user": {"login": "alice"},
+        },
+    }
+
+    slack_backend = MockSlackBackend(
+        messages=[],
+        target_message=messages_apm[0],
+        reactions=[],
+        channel_messages={"C_APM": messages_apm, "C_BUILD": messages_build},
+        channel_reactions={"C_APM": [], "C_BUILD": []},
+    )
+    github_backend = MockGithubBackend(
+        reviews=[Review(state="approved", username="alice")],
+        event=event,
+        pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
+        team_members={"agent-apm": ["alice"], "agent-build": ["bob"]},
+        requested_teams_timeline=["agent-apm", "agent-build"],
+    )
+
+    review_map = ReviewMap(
+        team_to_channel={"@datadog/agent-apm": "C_APM", "@datadog/agent-build": "C_BUILD"},
+        default_channel_id="C_DEFAULT",
+    )
+
+    config = Config(
+        slack_client=SlackClient(backend=slack_backend),
+        github_client=GithubClient(backend=github_backend),
+        slack_channel_id="C_DEFAULT",
+        slapr_bot_user_id="U1234",
+        number_of_approvals_required=1,
+        emoji_review_started="test_review_started",
+        emoji_approved="test_approved",
+        emoji_needs_change="test_needs_change",
+        emoji_merged="test_merged",
+        emoji_closed="test_closed",
+        emoji_commented="test_commented",
+        review_map=review_map,
+    )
+    slapr.main(config)
+
+    # alice is in agent-apm: full review status
+    assert slack_backend.channel_emojis["C_APM"] == ["test_review_started", "test_approved"]
+    # agent-build was also requested: should get review_started even though alice is not a member
+    assert slack_backend.channel_emojis["C_BUILD"] == ["test_review_started"]
