@@ -127,11 +127,13 @@ def _resolve_target_channels(
         return {(config.slack_channel_id, None)}
 
     # For review events, determine target channels from reviewer's team membership
+    # Use the Timeline API to get all teams ever requested, since submitted reviews
+    # are removed from the event payload's requested_teams list.
     reviewer = event.get("review", {}).get("user", {}).get("login")
-    requested_teams = [t["slug"] for t in event["pull_request"].get("requested_teams", [])]
+    requested_teams = github.get_all_requested_teams(pr_number)
 
     print(f"Reviewer: {reviewer}")
-    print(f"Requested teams: {', '.join(requested_teams)}")
+    print(f"Requested teams (from timeline): {', '.join(requested_teams)}")
 
     target_channels = set()
     for team_slug in requested_teams:

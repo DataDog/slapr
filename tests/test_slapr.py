@@ -299,6 +299,7 @@ def test_review_with_review_map_routes_to_team_channel():
         event=MOCK_EVENT_WITH_TEAMS,
         pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
         team_members={"agent-apm": ["alice"]},
+        requested_teams_timeline=["agent-apm"],
     )
 
     review_map = ReviewMap(
@@ -451,6 +452,7 @@ def test_review_map_filters_reviews_to_team_members_only():
         event=event,
         pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
         team_members={"agent-apm": ["bob"]},  # only bob is in agent-apm
+        requested_teams_timeline=["agent-apm"],
     )
 
     review_map = ReviewMap(
