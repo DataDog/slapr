@@ -24,12 +24,17 @@ def _make_slack_client(channel_map):
     return SlackClient(backend=MockSlackBackendForResolve(channel_map))
 
 
-def test_load_basic():
+def test_load_with_name_and_id():
+    """When both name and id are provided, id is used directly (no API call)."""
     yaml_content = """
-'@datadog/agent-apm': '#apm-agent'
-'@datadog/agent-build': '#agent-build'
+'@datadog/agent-apm':
+  name: 'apm-agent'
+  id: 'C_APM'
+'@datadog/agent-build':
+  name: 'agent-build'
+  id: 'C_BUILD'
 """
-    slack_client = _make_slack_client({"apm-agent": "C_APM", "agent-build": "C_BUILD"})
+    slack_client = _make_slack_client({})
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         f.write(yaml_content)
@@ -45,12 +50,37 @@ def test_load_basic():
     assert review_map.default_channel_id == "C_DEFAULT"
 
 
+def test_load_name_only_resolves_via_api():
+    """When only name is provided, channel is resolved via Slack API."""
+    yaml_content = """
+'@datadog/agent-apm':
+  name: 'apm-agent'
+'@datadog/agent-build':
+  name: 'agent-build'
+"""
+    slack_client = _make_slack_client({"apm-agent": "C_APM", "agent-build": "C_BUILD"})
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        f.write(yaml_content)
+        f.flush()
+        review_map = ReviewMap.load(f.name, slack_client, default_channel_id="C_DEFAULT")
+
+    os.unlink(f.name)
+
+    assert review_map.team_to_channel == {
+        "@datadog/agent-apm": "C_APM",
+        "@datadog/agent-build": "C_BUILD",
+    }
+
+
 def test_load_with_default_channel():
     yaml_content = """
-'@datadog/agent-apm': '#apm-agent'
+'@datadog/agent-apm':
+  name: 'apm-agent'
+  id: 'C_APM'
 '@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'
 """
-    slack_client = _make_slack_client({"apm-agent": "C_APM"})
+    slack_client = _make_slack_client({})
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         f.write(yaml_content)
@@ -65,25 +95,10 @@ def test_load_with_default_channel():
     }
 
 
-def test_load_with_raw_channel_id():
-    yaml_content = """
-'@datadog/agent-apm': 'C_ALREADY_AN_ID'
-"""
-    slack_client = _make_slack_client({})
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-        f.write(yaml_content)
-        f.flush()
-        review_map = ReviewMap.load(f.name, slack_client, default_channel_id="C_DEFAULT")
-
-    os.unlink(f.name)
-
-    assert review_map.team_to_channel == {"@datadog/agent-apm": "C_ALREADY_AN_ID"}
-
-
 def test_load_unresolvable_channel(capsys):
     yaml_content = """
-'@datadog/agent-apm': '#nonexistent-channel'
+'@datadog/agent-apm':
+  name: 'nonexistent-channel'
 """
     slack_client = _make_slack_client({})
 
@@ -149,33 +164,14 @@ def test_get_all_channels():
     assert review_map.get_all_channels() == {"C_APM", "C_BUILD"}
 
 
-def test_load_with_inline_channel_ids():
-    """When channel IDs are provided inline (#name:ID), no API resolution is needed."""
+def test_load_mixed_id_and_resolve():
+    """Mix of entries with id and entries needing resolution."""
     yaml_content = """
-'@datadog/agent-apm': '#apm-agent:C_APM'
-'@datadog/agent-build': '#agent-build:C_BUILD'
-"""
-    # Empty channel map — resolve should not be called for these entries
-    slack_client = _make_slack_client({})
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-        f.write(yaml_content)
-        f.flush()
-        review_map = ReviewMap.load(f.name, slack_client, default_channel_id="C_DEFAULT")
-
-    os.unlink(f.name)
-
-    assert review_map.team_to_channel == {
-        "@datadog/agent-apm": "C_APM",
-        "@datadog/agent-build": "C_BUILD",
-    }
-
-
-def test_load_mixed_inline_and_resolve():
-    """Mix of inline IDs and names that need resolution."""
-    yaml_content = """
-'@datadog/agent-apm': '#apm-agent:C_APM'
-'@datadog/agent-build': '#agent-build'
+'@datadog/agent-apm':
+  name: 'apm-agent'
+  id: 'C_APM'
+'@datadog/agent-build':
+  name: 'agent-build'
 '@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'
 """
     slack_client = _make_slack_client({"agent-build": "C_BUILD"})
@@ -192,3 +188,22 @@ def test_load_mixed_inline_and_resolve():
         "@datadog/agent-build": "C_BUILD",
         "@datadog/agent-ci": "C_DEFAULT",
     }
+
+
+def test_load_missing_name_and_id(capsys):
+    """Entry with neither name nor id should be skipped with a warning."""
+    yaml_content = """
+'@datadog/agent-apm':
+  foo: 'bar'
+"""
+    slack_client = _make_slack_client({})
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        f.write(yaml_content)
+        f.flush()
+        review_map = ReviewMap.load(f.name, slack_client, default_channel_id="C_DEFAULT")
+
+    os.unlink(f.name)
+
+    assert review_map.team_to_channel == {}
+    assert "neither" in capsys.readouterr().out.lower()

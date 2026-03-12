@@ -24,36 +24,16 @@ class ReviewMap:
         self.default_channel_id = default_channel_id
 
     @staticmethod
-    def _parse_channel_ref(channel_ref: str):
-        """Parse a channel reference value from the YAML map.
-
-        Supported formats:
-            '#channel-name:C01234ABCDE'  -> (channel_id='C01234ABCDE', needs_resolve=False)
-            '#channel-name'              -> (channel_name='channel-name', needs_resolve=True)
-            'C01234ABCDE'                -> (channel_id='C01234ABCDE', needs_resolve=False)
-            'DEFAULT_SLACK_CHANNEL'      -> (sentinel, needs_resolve=False)
-        """
-        if channel_ref == DEFAULT_SLACK_CHANNEL:
-            return DEFAULT_SLACK_CHANNEL, False
-        if channel_ref.startswith("#") and ":" in channel_ref:
-            # Format: '#channel-name:C01234ABCDE'
-            channel_id = channel_ref.split(":", 1)[1]
-            return channel_id, False
-        if channel_ref.startswith("#"):
-            # Format: '#channel-name' — needs API resolution
-            return channel_ref.lstrip("#"), True
-        # Raw channel ID
-        return channel_ref, False
-
-    @staticmethod
     def load(file_path: str, slack_client, default_channel_id: str) -> "ReviewMap":
         """Load YAML mapping file and resolve channel names to IDs via Slack API.
 
         YAML format:
-            '@datadog/agent-apm': '#apm-agent:C01234ABCDE'   # channel name + ID (preferred)
-            '@datadog/agent-build': '#agent-build'             # resolved via Slack API
+            '@datadog/agent-apm':
+              name: 'apm-agent'
+              id: 'C01234ABCDE'
+            '@datadog/agent-build':
+              name: 'agent-build'        # id omitted — resolved via Slack API
             '@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'
-            '@datadog/agent-platform': 'C09876FGHIJ'           # raw channel ID
         """
         with open(file_path) as f:
             raw_map = yaml.safe_load(f)
@@ -61,38 +41,40 @@ class ReviewMap:
         if not raw_map:
             return ReviewMap(team_to_channel={}, default_channel_id=default_channel_id)
 
-        # First pass: parse all refs, collect names that need resolution
-        parsed = {}
-        names_to_resolve = set()
-        for team, channel_ref in raw_map.items():
-            value, needs_resolve = ReviewMap._parse_channel_ref(channel_ref)
-            parsed[team] = (value, needs_resolve)
-            if needs_resolve:
-                names_to_resolve.add(value)
+        # First pass: extract channel IDs and collect names that need resolution
+        team_to_channel = {}
+        teams_pending_resolve = {}  # {channel_name: team_key}
+        for team, entry in raw_map.items():
+            team_key = team.lower()
+            if isinstance(entry, str) and entry == DEFAULT_SLACK_CHANNEL:
+                team_to_channel[team_key] = default_channel_id
+            elif isinstance(entry, dict):
+                channel_id = entry.get("id")
+                channel_name = entry.get("name")
+                if channel_id:
+                    team_to_channel[team_key] = channel_id
+                elif channel_name:
+                    teams_pending_resolve[channel_name] = team_key
+                else:
+                    print(f"Warning: Entry for {team} has neither 'id' nor 'name', skipping")
+            else:
+                print(f"Warning: Unexpected format for {team}: {entry!r}, skipping")
 
-        # Resolve channel names to IDs (only for entries without an inline ID)
-        name_to_id = {}
-        if names_to_resolve:
+        # Resolve channel names to IDs (only for entries without an ID)
+        if teams_pending_resolve:
             try:
-                name_to_id = slack_client.resolve_channel_names(names_to_resolve)
+                name_to_id = slack_client.resolve_channel_names(set(teams_pending_resolve.keys()))
             except SlackApiError as e:
                 print(f"Warning: Failed to resolve channel names via Slack API: {e}")
-                print("Entries without inline channel IDs will be skipped. "
-                      "Use '#channel-name:CHANNEL_ID' format to avoid this.")
+                print("Entries without channel IDs will be skipped. "
+                      "Add 'id' field to avoid this.")
+                name_to_id = {}
 
-        # Build the resolved map
-        team_to_channel = {}
-        for team, (value, needs_resolve) in parsed.items():
-            team_key = team.lower()
-            if value == DEFAULT_SLACK_CHANNEL:
-                team_to_channel[team_key] = default_channel_id
-            elif needs_resolve:
-                if value in name_to_id:
-                    team_to_channel[team_key] = name_to_id[value]
+            for channel_name, team_key in teams_pending_resolve.items():
+                if channel_name in name_to_id:
+                    team_to_channel[team_key] = name_to_id[channel_name]
                 else:
-                    print(f"Warning: Could not resolve channel #{value} for team {team}, skipping")
-            else:
-                team_to_channel[team_key] = value
+                    print(f"Warning: Could not resolve channel '{channel_name}' for team {team_key}, skipping")
 
         return ReviewMap(team_to_channel=team_to_channel, default_channel_id=default_channel_id)
 

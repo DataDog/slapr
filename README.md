@@ -43,16 +43,17 @@ Create a YAML file mapping GitHub teams to Slack channels:
 
 ```yaml
 # review-map.yaml
-'@datadog/agent-apm': '#apm-agent:C01234ABCDE'  # channel name + ID (preferred, no API call)
-'@datadog/agent-build': '#agent-build'            # resolved via Slack API at startup
-'@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'      # falls back to SLACK_CHANNEL_ID
-'@datadog/agent-platform': 'C09876FGHIJ'          # raw channel ID
+'@datadog/agent-apm':
+  name: 'apm-agent'
+  id: 'C01234ABCDE'          # preferred: name + id (no API call needed)
+'@datadog/agent-build':
+  name: 'agent-build'         # id omitted: resolved via Slack API at startup
+'@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'  # falls back to SLACK_CHANNEL_ID
 ```
 
-- **Preferred format**: `#channel-name:CHANNEL_ID` — includes both name (for readability) and ID (avoids Slack API rate limits).
-- Channel names without an ID (e.g. `#apm-agent`) are resolved via the Slack API at startup (requires `channels:read` scope).
+- **Preferred format**: provide both `name` (for readability) and `id` (avoids Slack API rate limits).
+- When `id` is omitted, the channel name is resolved via the Slack API at startup (requires `channels:read` scope).
 - Use `DEFAULT_SLACK_CHANNEL` to route a team to the default `SLACK_CHANNEL_ID`.
-- You can also use raw channel IDs (e.g. `C01234ABCDE`) directly.
 
 On review events, slapr checks the reviewer's team membership (requires `read:org` scope on the GitHub token) and posts to the matching channel. On merge/close events, it uses the GitHub Timeline API to find all teams that were ever requested and posts to each of their channels.
 
