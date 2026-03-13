@@ -207,3 +207,26 @@ def test_load_missing_name_and_id(capsys):
 
     assert review_map.team_to_channel == {}
     assert "neither" in capsys.readouterr().out.lower()
+
+
+def test_load_multiple_teams_same_channel_name():
+    """Multiple teams sharing the same channel name (resolved via API) should all map correctly."""
+    yaml_content = """
+'@datadog/agent-apm':
+  name: 'shared-channel'
+'@datadog/agent-build':
+  name: 'shared-channel'
+"""
+    slack_client = _make_slack_client({"shared-channel": "C_SHARED"})
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        f.write(yaml_content)
+        f.flush()
+        review_map = ReviewMap.load(f.name, slack_client, default_channel_id="C_DEFAULT")
+
+    os.unlink(f.name)
+
+    assert review_map.team_to_channel == {
+        "@datadog/agent-apm": "C_SHARED",
+        "@datadog/agent-build": "C_SHARED",
+    }

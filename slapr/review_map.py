@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import TYPE_CHECKING, Dict, List, Optional, Set
 
 import yaml
@@ -48,7 +49,7 @@ class ReviewMap:
 
         # First pass: extract channel IDs and collect names that need resolution
         team_to_channel = {}
-        teams_pending_resolve = {}  # {channel_name: team_key}
+        teams_pending_resolve = defaultdict(list)  # {channel_name: [team_key, ...]}
         for team, entry in raw_map.items():
             team_key = team.lower()
             if isinstance(entry, str) and entry == DEFAULT_SLACK_CHANNEL:
@@ -59,7 +60,7 @@ class ReviewMap:
                 if channel_id:
                     team_to_channel[team_key] = channel_id
                 elif channel_name:
-                    teams_pending_resolve[channel_name] = team_key
+                    teams_pending_resolve[channel_name].append(team_key)
                 else:
                     print(f"Warning: Entry for {team} has neither 'id' nor 'name', skipping")
             else:
@@ -75,11 +76,12 @@ class ReviewMap:
                       "Add 'id' field to avoid this.")
                 name_to_id = {}
 
-            for channel_name, team_key in teams_pending_resolve.items():
+            for channel_name, team_keys in teams_pending_resolve.items():
                 if channel_name in name_to_id:
-                    team_to_channel[team_key] = name_to_id[channel_name]
+                    for team_key in team_keys:
+                        team_to_channel[team_key] = name_to_id[channel_name]
                 else:
-                    print(f"Warning: Could not resolve channel '{channel_name}' for team {team_key}, skipping")
+                    print(f"Warning: Could not resolve channel '{channel_name}' for teams {', '.join(team_keys)}, skipping")
 
         return ReviewMap(team_to_channel=team_to_channel, default_channel_id=default_channel_id)
 
