@@ -30,9 +30,6 @@ class GithubBackend:
     def get_pr(self, pr_number: int) -> PullRequest:
         raise NotImplementedError  # pragma: no cover
 
-    def is_team_member(self, org: str, team_slug: str, username: str) -> bool:
-        raise NotImplementedError  # pragma: no cover
-
     def get_team_memberships(self, org: str, team_slugs: List[str], username: str) -> Set[str]:
         raise NotImplementedError  # pragma: no cover
 
@@ -57,12 +54,6 @@ class WebGithubBackend(GithubBackend):
     def get_pr(self, pr_number: int) -> PullRequest:
         pr = self._gh.get_repo(self.repo).get_pull(pr_number)
         return PullRequest(state=pr.state, merged=pr.merged, mergeable_state=pr.mergeable_state)
-
-    def is_team_member(self, org: str, team_slug: str, username: str) -> bool:
-        org_obj = self._gh.get_organization(org)
-        team = org_obj.get_team_by_slug(team_slug)
-        user = self._gh.get_user(username)
-        return team.has_in_members(user)
 
     def get_team_memberships(self, org: str, team_slugs: List[str], username: str) -> Set[str]:
         org_obj = self._gh.get_organization(org)
@@ -94,9 +85,6 @@ class GithubClient:
 
     def get_pr(self, pr_number: int) -> PullRequest:
         return self._backend.get_pr(pr_number)
-
-    def is_team_member(self, org: str, team_slug: str, username: str) -> bool:
-        return self._backend.is_team_member(org, team_slug, username)
 
     def get_team_memberships(self, org: str, team_slugs: List[str], username: str) -> Set[str]:
         return self._backend.get_team_memberships(org, team_slugs, username)

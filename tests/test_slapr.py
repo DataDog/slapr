@@ -98,10 +98,6 @@ class MockGithubBackend(GithubBackend):
         assert pr_number == self.event["pull_request"]["number"]
         return list(self.reviews)
 
-    def is_team_member(self, org: str, team_slug: str, username: str) -> bool:
-        members = self.team_members.get(team_slug, [])
-        return username in members
-
     def get_team_memberships(self, org: str, team_slugs: List[str], username: str) -> Set[str]:
         return {slug for slug in team_slugs if username in self.team_members.get(slug, [])}
 
