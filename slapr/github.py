@@ -66,13 +66,15 @@ class WebGithubBackend(GithubBackend):
 
     def get_all_requested_teams(self, org_name: str, pr_number: int) -> List:
         """Get all teams ever requested for review using the Timeline API."""
-        teams = set()
+        teams = {}
         pr = self._gh.get_repo(self.repo).get_pull(pr_number)
         org = self.get_organization(org_name)
         for event in pr.get_issue_events():
             if event.event == "review_requested" and "requested_team" in event.raw_data:
-                teams.add(org.get_team_by_slug(event.raw_data["requested_team"]["slug"]))
-        return list(teams)
+                slug = event.raw_data["requested_team"]["slug"]
+                if slug not in teams:
+                    teams[slug] = org.get_team_by_slug(slug)
+        return list(teams.values())
 
 
 class GithubClient:

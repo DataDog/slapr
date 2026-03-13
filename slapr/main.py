@@ -74,7 +74,7 @@ def main(config: Config) -> None:
 
 
 def _all_requested_team_channels(
-    config: Config, requested_teams: List[str]
+    config: Config, requested_teams: List
 ) -> Set[str]:
     """Return all Slack channel IDs for teams requested on this PR."""
     review_map = config.review_map
@@ -121,7 +121,7 @@ def _apply_emojis_to_channel(
 
 
 def _resolve_target_channels(
-    config: Config, requested_teams: List[str], pr: PullRequest, reviewer
+    config: Config, requested_teams: List, pr: PullRequest, reviewer
 ) -> Dict[str, List]:
     """Determine which Slack channels to target based on the review map.
 
