@@ -3,9 +3,14 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/)
 # Copyright 2023-present Datadog, Inc.
 
-from typing import Dict, List, Optional, Set
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Dict, List, Optional, Set
 
 import yaml
+
+if TYPE_CHECKING:
+    from .slack import SlackClient
 from slack_sdk.errors import SlackApiError
 
 
@@ -24,7 +29,7 @@ class ReviewMap:
         self.default_channel_id = default_channel_id
 
     @staticmethod
-    def load(file_path: str, slack_client, default_channel_id: str) -> "ReviewMap":
+    def load(file_path: str, slack_client: "SlackClient", default_channel_id: str) -> "ReviewMap":
         """Load YAML mapping file and resolve channel names to IDs via Slack API.
 
         YAML format:
