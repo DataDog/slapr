@@ -14,6 +14,39 @@ from slapr.review_map import ReviewMap
 from slapr.slack import Message, Reaction, SlackBackend, SlackClient
 
 
+# --- Mock GitHub objects (stand-ins for PyGithub types) ---
+
+
+class MockUser:
+    def __init__(self, login: str):
+        self.login = login
+
+    def __repr__(self):
+        return f"MockUser({self.login!r})"
+
+
+class MockTeam:
+    def __init__(self, slug: str, members: List[str], organization: "MockOrganization" = None):
+        self.slug = slug
+        self._members = members
+        self.organization = organization
+
+    def has_in_members(self, user) -> bool:
+        return user.login in self._members
+
+
+class MockOrganization:
+    def __init__(self, login: str, teams: Dict[str, MockTeam]):
+        self.login = login
+        self._teams = teams
+
+    def get_team_by_slug(self, slug: str) -> MockTeam:
+        return self._teams[slug]
+
+
+# --- Mock backends ---
+
+
 class MockSlackBackend(SlackBackend):
     def __init__(
         self,
@@ -98,18 +131,40 @@ class MockGithubBackend(GithubBackend):
         assert pr_number == self.event["pull_request"]["number"]
         return list(self.reviews)
 
-    def get_team_memberships(self, org: str, team_slugs: List[str], username: str) -> Set[str]:
-        return {slug for slug in team_slugs if username in self.team_members.get(slug, [])}
+    def get_organization(self, org: str):
+        teams = {
+            slug: MockTeam(slug, members)
+            for slug, members in self.team_members.items()
+        }
+        mock_org = MockOrganization(org, teams)
+        # Back-link teams to their org (PyGithub Team objects have .organization)
+        for team in teams.values():
+            team.organization = mock_org
+        return mock_org
 
-    def get_all_requested_teams(self, pr_number: int) -> List[str]:
-        return list(self.requested_teams_timeline)
+    def get_user(self, username: str):
+        return MockUser(username)
+
+    def get_all_requested_teams(self, org_name: str, pr_number: int) -> List:
+        org = self.get_organization(org_name)
+        return [org.get_team_by_slug(slug) for slug in self.requested_teams_timeline]
+
+
+# --- Helper to create mock users for Review construction ---
+
+
+def _user(login: str) -> MockUser:
+    return MockUser(login)
+
+
+# --- Test data ---
 
 
 MOCK_EVENT = {
     "pull_request": {
         "number": 42,
         "html_url": "https://github.com/example/repo/pull/42",
-        "head": {"repo": {"fork": False}},
+        "head": {"repo": {"fork": False, "owner": {"login": "datadog"}}},
     },
     "review": {
         "user": {"login": "alice"},
@@ -122,49 +177,49 @@ MOCK_EVENT = {
     [
         pytest.param(
             [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
-            [Review(state="approved", username="alice")],
+            [Review(state="approved", user=_user("alice"))],
             [],
             ["test_review_started", "test_approved"],
             id="approval",
         ),
         pytest.param(
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
-            [Review(state="changes_requested", username="alice")],
+            [Review(state="changes_requested", user=_user("alice"))],
             [],
             ["test_review_started", "test_needs_change"],
             id="changes_requested",
         ),
         pytest.param(
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
-            [Review(state="commented", username="alice")],
+            [Review(state="commented", user=_user("alice"))],
             [],
             ["test_review_started", "test_commented"],
             id="comment",
         ),
         pytest.param(
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
-            [Review(state="changes_requested", username="alice"), Review(state="approved", username="alice")],
+            [Review(state="changes_requested", user=_user("alice")), Review(state="approved", user=_user("alice"))],
             [Reaction(emoji="test_needs_change", user_ids=["U1234"])],
             ["test_review_started", "test_approved"],
             id="approved-from-changes-requested",
         ),
         pytest.param(
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
-            [Review(state="commented", username="alice"), Review(state="approved", username="alice")],
+            [Review(state="commented", user=_user("alice")), Review(state="approved", user=_user("alice"))],
             [Reaction(emoji="test_commented", user_ids=["U1234"])],
             ["test_review_started", "test_approved"],
             id="approved-from-commented",
         ),
         pytest.param(
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
-            [Review(state="changes_requested", username="alice"), Review(state="commented", username="alice")],
+            [Review(state="changes_requested", user=_user("alice")), Review(state="commented", user=_user("alice"))],
             [],
             ["test_review_started", "test_commented"],
             id="commented-after-changes-requested-same-reviewer",
         ),
         pytest.param(
             [Message(text="Need :eyes: but I've got no PR URL", timestamp="yyyy-mm-dd")],
-            [Review(state="approved", username="alice")],
+            [Review(state="approved", user=_user("alice"))],
             [],
             [],
             id="message-not-found",
@@ -226,7 +281,7 @@ def test_on_pull_request_review(
 )
 def test_on_pull_request(event: dict, pr: PullRequest, reactions: List[Reaction], expected_emojis: set) -> None:
     messages = [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")]
-    reviews = [Review(state="approved", username="alice")]
+    reviews = [Review(state="approved", user=_user("alice"))]
 
     slack_backend = MockSlackBackend(messages=messages, target_message=messages[0], reactions=reactions)
     github_backend = MockGithubBackend(
@@ -290,7 +345,7 @@ def test_review_with_review_map_routes_to_team_channel():
         channel_reactions={"C_APM": []},
     )
     github_backend = MockGithubBackend(
-        reviews=[Review(state="approved", username="alice")],
+        reviews=[Review(state="approved", user=_user("alice"))],
         event=MOCK_EVENT_WITH_TEAMS,
         pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
         team_members={"agent-apm": ["alice"]},
@@ -343,7 +398,7 @@ def test_review_with_review_map_falls_back_to_default():
         reactions=[],
     )
     github_backend = MockGithubBackend(
-        reviews=[Review(state="approved", username="bob")],
+        reviews=[Review(state="approved", user=_user("bob"))],
         event=event_no_teams,
         pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
     )
@@ -385,7 +440,7 @@ def test_merge_with_review_map_targets_requested_team_channels():
         channel_reactions={"C_APM": [Reaction(emoji="test_review_started", user_ids=["U1234"])]},
     )
     github_backend = MockGithubBackend(
-        reviews=[Review(state="approved", username="alice")],
+        reviews=[Review(state="approved", user=_user("alice"))],
         event=MOCK_EVENT_MERGE_WITH_OWNER,
         pr=PullRequest(state="closed", merged=True, mergeable_state="clean"),
         requested_teams_timeline=["agent-apm"],
@@ -413,11 +468,11 @@ def test_merge_with_review_map_targets_requested_team_channels():
     )
     slapr.main(config)
 
-    assert slack_backend.channel_emojis["C_APM"] == ["test_merged"]
+    assert slack_backend.channel_emojis["C_APM"] == ["test_approved", "test_merged"]
 
 
 def test_review_map_uses_reviewer_state_only():
-    """Only the current reviewer's state determines the emoji."""
+    """Only reviews from the reviewer's team members determine the emoji."""
     messages = [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="ts-apm")]
 
     event = {
@@ -441,7 +496,7 @@ def test_review_map_uses_reviewer_state_only():
     )
     github_backend = MockGithubBackend(
         # alice approved (not a team member), bob commented (team member)
-        reviews=[Review(state="approved", username="alice"), Review(state="commented", username="bob")],
+        reviews=[Review(state="approved", user=_user("alice")), Review(state="commented", user=_user("bob"))],
         event=event,
         pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
         team_members={"agent-apm": ["bob"]},  # only bob is in agent-apm
@@ -499,7 +554,7 @@ def test_review_started_broadcast_to_all_requested_team_channels():
         channel_reactions={"C_APM": [], "C_BUILD": []},
     )
     github_backend = MockGithubBackend(
-        reviews=[Review(state="approved", username="alice")],
+        reviews=[Review(state="approved", user=_user("alice"))],
         event=event,
         pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
         team_members={"agent-apm": ["alice"], "agent-build": ["bob"]},

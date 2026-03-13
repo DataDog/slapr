@@ -4,14 +4,14 @@
 # Copyright 2023-present Datadog, Inc.
 
 import json
-from typing import List, NamedTuple, Set
+from typing import List, NamedTuple
 
 from github import Github
 
 
 class Review(NamedTuple):
     state: str
-    username: str
+    user: object  # NamedUser in production, MockUser in tests
 
 
 class PullRequest(NamedTuple):
@@ -30,10 +30,13 @@ class GithubBackend:
     def get_pr(self, pr_number: int) -> PullRequest:
         raise NotImplementedError  # pragma: no cover
 
-    def get_team_memberships(self, org: str, team_slugs: List[str], username: str) -> Set[str]:
+    def get_organization(self, org: str):
         raise NotImplementedError  # pragma: no cover
 
-    def get_all_requested_teams(self, pr_number: int) -> List[str]:
+    def get_user(self, username: str):
+        raise NotImplementedError  # pragma: no cover
+
+    def get_all_requested_teams(self, org_name: str, pr_number: int) -> List:
         raise NotImplementedError  # pragma: no cover
 
 
@@ -49,27 +52,26 @@ class WebGithubBackend(GithubBackend):
 
     def get_pr_reviews(self, pr_number: int) -> List[Review]:
         reviews = self._gh.get_repo(self.repo).get_pull(pr_number).get_reviews()
-        return [Review(state=review.state.lower(), username=review.user.login) for review in reviews]
+        return [Review(state=review.state.lower(), user=review.user) for review in reviews]
 
     def get_pr(self, pr_number: int) -> PullRequest:
         pr = self._gh.get_repo(self.repo).get_pull(pr_number)
         return PullRequest(state=pr.state, merged=pr.merged, mergeable_state=pr.mergeable_state)
 
-    def get_team_memberships(self, org: str, team_slugs: List[str], username: str) -> Set[str]:
-        org_obj = self._gh.get_organization(org)
-        user = self._gh.get_user(username)
-        return {
-            slug for slug in team_slugs
-            if org_obj.get_team_by_slug(slug).has_in_members(user)
-        }
+    def get_organization(self, org: str):
+        return self._gh.get_organization(org)
 
-    def get_all_requested_teams(self, pr_number: int) -> List[str]:
+    def get_user(self, username: str):
+        return self._gh.get_user(username)
+
+    def get_all_requested_teams(self, org_name: str, pr_number: int) -> List:
         """Get all teams ever requested for review using the Timeline API."""
         teams = set()
         pr = self._gh.get_repo(self.repo).get_pull(pr_number)
+        org = self.get_organization(org_name)
         for event in pr.get_issue_events():
             if event.event == "review_requested" and "requested_team" in event.raw_data:
-                teams.add(event.raw_data["requested_team"]["slug"])
+                teams.add(org.get_team_by_slug(event.raw_data["requested_team"]["slug"]))
         return list(teams)
 
 
@@ -86,8 +88,11 @@ class GithubClient:
     def get_pr(self, pr_number: int) -> PullRequest:
         return self._backend.get_pr(pr_number)
 
-    def get_team_memberships(self, org: str, team_slugs: List[str], username: str) -> Set[str]:
-        return self._backend.get_team_memberships(org, team_slugs, username)
+    def get_organization(self, org: str):
+        return self._backend.get_organization(org)
 
-    def get_all_requested_teams(self, pr_number: int) -> List[str]:
-        return self._backend.get_all_requested_teams(pr_number)
+    def get_user(self, username: str):
+        return self._backend.get_user(username)
+
+    def get_all_requested_teams(self, org_name: str, pr_number: int) -> List:
+        return self._backend.get_all_requested_teams(org_name, pr_number)
