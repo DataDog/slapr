@@ -24,15 +24,17 @@ def _make_slack_client(channel_map):
     return SlackClient(backend=MockSlackBackendForResolve(channel_map))
 
 
-def test_load_with_name_and_id():
-    """When both name and id are provided, id is used directly (no API call)."""
+def test_load_with_review_name_and_id():
+    """When review has both name and id, id is used directly (no API call)."""
     yaml_content = """
 '@datadog/agent-apm':
-  name: 'apm-agent'
-  id: 'C_APM'
+  review:
+    name: 'apm-review'
+    id: 'C_APM'
 '@datadog/agent-build':
-  name: 'agent-build'
-  id: 'C_BUILD'
+  review:
+    name: 'agent-build-review'
+    id: 'C_BUILD'
 """
     slack_client = _make_slack_client({})
 
@@ -50,15 +52,17 @@ def test_load_with_name_and_id():
     assert review_map.default_channel_id == "C_DEFAULT"
 
 
-def test_load_name_only_resolves_via_api():
-    """When only name is provided, channel is resolved via Slack API."""
+def test_load_review_name_only_resolves_via_api():
+    """When review has only name, channel is resolved via Slack API."""
     yaml_content = """
 '@datadog/agent-apm':
-  name: 'apm-agent'
+  review:
+    name: 'apm-review'
 '@datadog/agent-build':
-  name: 'agent-build'
+  review:
+    name: 'agent-build-review'
 """
-    slack_client = _make_slack_client({"apm-agent": "C_APM", "agent-build": "C_BUILD"})
+    slack_client = _make_slack_client({"apm-review": "C_APM", "agent-build-review": "C_BUILD"})
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         f.write(yaml_content)
@@ -76,8 +80,9 @@ def test_load_name_only_resolves_via_api():
 def test_load_with_default_channel():
     yaml_content = """
 '@datadog/agent-apm':
-  name: 'apm-agent'
-  id: 'C_APM'
+  review:
+    name: 'apm-review'
+    id: 'C_APM'
 '@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'
 """
     slack_client = _make_slack_client({})
@@ -98,7 +103,8 @@ def test_load_with_default_channel():
 def test_load_unresolvable_channel(capsys):
     yaml_content = """
 '@datadog/agent-apm':
-  name: 'nonexistent-channel'
+  review:
+    name: 'nonexistent-channel'
 """
     slack_client = _make_slack_client({})
 
@@ -168,13 +174,15 @@ def test_load_mixed_id_and_resolve():
     """Mix of entries with id and entries needing resolution."""
     yaml_content = """
 '@datadog/agent-apm':
-  name: 'apm-agent'
-  id: 'C_APM'
+  review:
+    name: 'apm-review'
+    id: 'C_APM'
 '@datadog/agent-build':
-  name: 'agent-build'
+  review:
+    name: 'agent-build-review'
 '@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'
 """
-    slack_client = _make_slack_client({"agent-build": "C_BUILD"})
+    slack_client = _make_slack_client({"agent-build-review": "C_BUILD"})
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         f.write(yaml_content)
@@ -190,11 +198,13 @@ def test_load_mixed_id_and_resolve():
     }
 
 
-def test_load_missing_name_and_id(capsys):
-    """Entry with neither name nor id should be skipped with a warning."""
+def test_load_no_review_subfield(capsys):
+    """Entry with notification but no review subfield should be skipped."""
     yaml_content = """
 '@datadog/agent-apm':
-  foo: 'bar'
+  notification:
+    name: 'apm-notif'
+    id: 'C_NOTIF'
 """
     slack_client = _make_slack_client({})
 
@@ -206,16 +216,41 @@ def test_load_missing_name_and_id(capsys):
     os.unlink(f.name)
 
     assert review_map.team_to_channel == {}
-    assert "neither" in capsys.readouterr().out.lower()
+    assert "no 'review' subfield" in capsys.readouterr().out
+
+
+def test_load_notification_ignored():
+    """The notification subfield should be ignored, only review is used."""
+    yaml_content = """
+'@datadog/agent-apm':
+  notification:
+    name: 'apm-notif'
+    id: 'C_NOTIF'
+  review:
+    name: 'apm-review'
+    id: 'C_REVIEW'
+"""
+    slack_client = _make_slack_client({})
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        f.write(yaml_content)
+        f.flush()
+        review_map = ReviewMap.load(f.name, slack_client, default_channel_id="C_DEFAULT")
+
+    os.unlink(f.name)
+
+    assert review_map.team_to_channel == {"@datadog/agent-apm": "C_REVIEW"}
 
 
 def test_load_multiple_teams_same_channel_name():
-    """Multiple teams sharing the same channel name (resolved via API) should all map correctly."""
+    """Multiple teams sharing the same review channel name should all map correctly."""
     yaml_content = """
 '@datadog/agent-apm':
-  name: 'shared-channel'
+  review:
+    name: 'shared-channel'
 '@datadog/agent-build':
-  name: 'shared-channel'
+  review:
+    name: 'shared-channel'
 """
     slack_client = _make_slack_client({"shared-channel": "C_SHARED"})
 

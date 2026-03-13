@@ -33,13 +33,21 @@ class ReviewMap:
     def load(file_path: str, slack_client: "SlackClient", default_channel_id: str) -> "ReviewMap":
         """Load YAML mapping file and resolve channel names to IDs via Slack API.
 
-        YAML format:
+        YAML format (generic slack map with review and notification channels):
             '@datadog/agent-apm':
-              name: 'apm-agent'
-              id: 'C01234ABCDE'
+              review:
+                name: 'apm-review'
+                id: 'C01234ABCDE'
+              notification:
+                name: 'apm-notifications'
+                id: 'C09876FGHIJ'
             '@datadog/agent-build':
-              name: 'agent-build'        # id omitted — resolved via Slack API
+              review:
+                name: 'agent-build'      # id omitted — resolved via Slack API
             '@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'
+
+        Only the 'review' subfield is used by ReviewMap. The 'notification'
+        subfield is ignored (used by other tools).
         """
         with open(file_path) as f:
             raw_map = yaml.safe_load(f)
@@ -55,14 +63,21 @@ class ReviewMap:
             if isinstance(entry, str) and entry == DEFAULT_SLACK_CHANNEL:
                 team_to_channel[team_key] = default_channel_id
             elif isinstance(entry, dict):
-                channel_id = entry.get("id")
-                channel_name = entry.get("name")
+                review_entry = entry.get("review")
+                if review_entry is None:
+                    print(f"Warning: Entry for {team} has no 'review' subfield, skipping")
+                    continue
+                if not isinstance(review_entry, dict):
+                    print(f"Warning: 'review' for {team} is not a mapping, skipping")
+                    continue
+                channel_id = review_entry.get("id")
+                channel_name = review_entry.get("name")
                 if channel_id:
                     team_to_channel[team_key] = channel_id
                 elif channel_name:
                     teams_pending_resolve[channel_name].append(team_key)
                 else:
-                    print(f"Warning: Entry for {team} has neither 'id' nor 'name', skipping")
+                    print(f"Warning: 'review' for {team} has neither 'id' nor 'name', skipping")
             else:
                 print(f"Warning: Unexpected format for {team}: {entry!r}, skipping")
 

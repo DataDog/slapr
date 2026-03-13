@@ -42,16 +42,22 @@ By default, slapr posts emoji reactions to a single Slack channel (`SLACK_CHANNE
 Create a YAML file mapping GitHub teams to Slack channels:
 
 ```yaml
-# review-map.yaml
+# github_slack_map.yaml
 '@datadog/agent-apm':
-  name: 'apm-agent'
-  id: 'C01234ABCDE'          # preferred: name + id (no API call needed)
+  review:
+    name: 'apm-review'
+    id: 'C01234ABCDE'          # preferred: name + id (no API call needed)
+  notification:                 # ignored by slapr (used by other tools)
+    name: 'apm-notifications'
+    id: 'C09876FGHIJ'
 '@datadog/agent-build':
-  name: 'agent-build'         # id omitted: resolved via Slack API at startup
+  review:
+    name: 'agent-build'         # id omitted: resolved via Slack API at startup
 '@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'  # falls back to SLACK_CHANNEL_ID
 ```
 
-- **Preferred format**: provide both `name` (for readability) and `id` (avoids Slack API rate limits).
+- Each team entry has a `review` subfield (and optionally `notification`, which slapr ignores).
+- **Preferred format**: provide both `name` (for readability) and `id` (avoids Slack API rate limits) under `review`.
 - When `id` is omitted, the channel name is resolved via the Slack API at startup (requires `channels:read` scope).
 - Only **public channels** are supported. Private channels cannot be resolved by name and are not supported.
 - Use `DEFAULT_SLACK_CHANNEL` to route a team to the default `SLACK_CHANNEL_ID`.
