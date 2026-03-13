@@ -53,6 +53,7 @@ Create a YAML file mapping GitHub teams to Slack channels:
 
 - **Preferred format**: provide both `name` (for readability) and `id` (avoids Slack API rate limits).
 - When `id` is omitted, the channel name is resolved via the Slack API at startup (requires `channels:read` scope).
+- Only **public channels** are supported. Private channels cannot be resolved by name and are not supported.
 - Use `DEFAULT_SLACK_CHANNEL` to route a team to the default `SLACK_CHANNEL_ID`.
 
 On review events, slapr checks the reviewer's team membership (requires `read:org` scope on the GitHub token) and posts to the matching channel. On merge/close events, it uses the GitHub Timeline API to find all teams that were ever requested and posts to each of their channels.
