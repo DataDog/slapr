@@ -146,17 +146,20 @@ def _resolve_target_channels(
     print(f"Requested teams (from timeline): {', '.join(requested_teams)}")
 
     target_channels = set()
+    if pr_state != "closed" and reviewer:
+        reviewer_teams = github.get_team_memberships(org, requested_teams, reviewer)
+    else:
+        reviewer_teams = set()
+
     for team_slug in requested_teams:
         full_team = f"@{org}/{team_slug}".lower()
         if full_team not in review_map.team_to_channel:
             print(f"  Team {full_team}: not in review map, use default")
         channel_id = review_map.team_to_channel.get(full_team, config.slack_channel_id)
         if pr_state == "closed":
-            # Add all channels in this case.
             target_channels.add(channel_id)
         else:
-            # Or select only channels the reviewer belongs to.
-            is_member = reviewer and github.is_team_member(org, team_slug, reviewer)
+            is_member = team_slug in reviewer_teams
             print(f"  Team {full_team}: channel={channel_id}, {reviewer} is_member={is_member}")
             if is_member:
                 target_channels.add(channel_id)

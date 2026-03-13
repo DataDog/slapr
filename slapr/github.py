@@ -4,7 +4,7 @@
 # Copyright 2023-present Datadog, Inc.
 
 import json
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Set
 
 from github import Github
 
@@ -31,6 +31,9 @@ class GithubBackend:
         raise NotImplementedError  # pragma: no cover
 
     def is_team_member(self, org: str, team_slug: str, username: str) -> bool:
+        raise NotImplementedError  # pragma: no cover
+
+    def get_team_memberships(self, org: str, team_slugs: List[str], username: str) -> Set[str]:
         raise NotImplementedError  # pragma: no cover
 
     def get_all_requested_teams(self, pr_number: int) -> List[str]:
@@ -61,6 +64,14 @@ class WebGithubBackend(GithubBackend):
         user = self._gh.get_user(username)
         return team.has_in_members(user)
 
+    def get_team_memberships(self, org: str, team_slugs: List[str], username: str) -> Set[str]:
+        org_obj = self._gh.get_organization(org)
+        user = self._gh.get_user(username)
+        return {
+            slug for slug in team_slugs
+            if org_obj.get_team_by_slug(slug).has_in_members(user)
+        }
+
     def get_all_requested_teams(self, pr_number: int) -> List[str]:
         """Get all teams ever requested for review using the Timeline API."""
         teams = set()
@@ -86,6 +97,9 @@ class GithubClient:
 
     def is_team_member(self, org: str, team_slug: str, username: str) -> bool:
         return self._backend.is_team_member(org, team_slug, username)
+
+    def get_team_memberships(self, org: str, team_slugs: List[str], username: str) -> Set[str]:
+        return self._backend.get_team_memberships(org, team_slugs, username)
 
     def get_all_requested_teams(self, pr_number: int) -> List[str]:
         return self._backend.get_all_requested_teams(pr_number)

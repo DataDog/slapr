@@ -102,6 +102,9 @@ class MockGithubBackend(GithubBackend):
         members = self.team_members.get(team_slug, [])
         return username in members
 
+    def get_team_memberships(self, org: str, team_slugs: List[str], username: str) -> Set[str]:
+        return {slug for slug in team_slugs if username in self.team_members.get(slug, [])}
+
     def get_all_requested_teams(self, pr_number: int) -> List[str]:
         return list(self.requested_teams_timeline)
 
