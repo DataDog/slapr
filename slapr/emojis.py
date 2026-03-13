@@ -10,6 +10,7 @@ from .github import Review
 
 
 def get_for_reviews(
+    reviewer: str,
     reviews: List[Review],
     emoji_commented: int,
     emoji_needs_change: str,
@@ -21,7 +22,10 @@ def get_for_reviews(
         username: list(reviews) for username, reviews in itertools.groupby(reviews, key=lambda review: review.username)
     }
 
-    last_reviews = [reviews[-1] for reviews in reviews_by_author.values() if reviews]
+    reviewer_reviews = reviews_by_author.get(reviewer, [])
+    if not reviewer_reviews:
+        return None
+    last_reviews = [reviewer_reviews[-1]]
     unique_states = {review.state for review in last_reviews}
 
     if "changes_requested" in unique_states:

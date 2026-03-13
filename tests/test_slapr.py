@@ -111,7 +111,10 @@ MOCK_EVENT = {
         "number": 42,
         "html_url": "https://github.com/example/repo/pull/42",
         "head": {"repo": {"fork": False}},
-    }
+    },
+    "review": {
+        "user": {"login": "alice"},
+    },
 }
 
 
@@ -155,17 +158,10 @@ MOCK_EVENT = {
         ),
         pytest.param(
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
-            [Review(state="changes_requested", username="alice"), Review(state="comment", username="bob")],
+            [Review(state="changes_requested", username="alice"), Review(state="commented", username="alice")],
             [],
-            ["test_review_started", "test_needs_change"],
-            id="commented-ignored-when-changes-requested",
-        ),
-        pytest.param(
-            [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
-            [Review(state="changes_requested", username="alice"), Review(state="approved", username="bob")],
-            [],
-            ["test_review_started", "test_needs_change"],
-            id="approved-ignored-when-changes-requested",
+            ["test_review_started", "test_commented"],
+            id="commented-after-changes-requested-same-reviewer",
         ),
         pytest.param(
             [Message(text="Need :eyes: but I've got no PR URL", timestamp="yyyy-mm-dd")],
@@ -418,13 +414,11 @@ def test_merge_with_review_map_targets_requested_team_channels():
     )
     slapr.main(config)
 
-    assert "test_approved" in slack_backend.channel_emojis["C_APM"]
-    assert "test_merged" in slack_backend.channel_emojis["C_APM"]
+    assert slack_backend.channel_emojis["C_APM"] == ["test_merged"]
 
 
-def test_review_map_filters_reviews_to_team_members_only():
-    """When a non-team-member approved and a team member comments,
-    the team channel should show 'commented', not 'approved'."""
+def test_review_map_uses_reviewer_state_only():
+    """Only the current reviewer's state determines the emoji."""
     messages = [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="ts-apm")]
 
     event = {
@@ -476,7 +470,7 @@ def test_review_map_filters_reviews_to_team_members_only():
     )
     slapr.main(config)
 
-    # Should show 'commented' (bob's review), NOT 'approved' (alice is not in the team)
+    # Only bob's review (commented) counts — alice's approval is ignored
     assert slack_backend.channel_emojis["C_APM"] == ["test_review_started", "test_commented"]
 
 

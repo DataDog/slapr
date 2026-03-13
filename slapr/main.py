@@ -3,7 +3,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/)
 # Copyright 2023-present Datadog, Inc.
 
-from typing import Optional, Set, Tuple
+from typing import Set
 
 from . import emojis
 from .config import Config
@@ -35,18 +35,13 @@ def main(config: Config) -> None:
 
     # Determine target channels (with optional team slug for filtering)
     target_channels = _resolve_target_channels(config, github, event, pr_number)
+    reviewer = event.get("review", {}).get("user", {}).get("login")
 
-    for channel_id, team_slug in target_channels:
-        # Filter reviews to team members only when review-map is active
-        if team_slug is not None:
-            org = event["pull_request"]["head"]["repo"]["owner"]["login"]
-            team_reviews = [r for r in reviews if github.is_team_member(org, team_slug, r.username)]
-            print(f"Channel {channel_id} (team {team_slug}): {len(team_reviews)}/{len(reviews)} reviews from team members")
-        else:
-            team_reviews = reviews
+    for channel_id in target_channels:
 
         review_emoji = emojis.get_for_reviews(
-            team_reviews,
+            reviewer,
+            reviews,
             emoji_commented=config.emoji_commented,
             emoji_needs_change=config.emoji_needs_change,
             emoji_approved=config.emoji_approved,
@@ -68,7 +63,7 @@ def main(config: Config) -> None:
     # Only on the first review (len==1) — subsequent reviews already have review_started.
     if config.review_map is not None and not pr.merged and pr.state != "closed" and len(reviews) == 1:
         all_channels = _all_requested_team_channels(config, github, event, pr_number)
-        already_processed = {ch for ch, _ in target_channels}
+        already_processed = target_channels
         for channel_id in all_channels - already_processed:
             print(f"Broadcasting review_started to channel {channel_id}")
             _apply_emojis_to_channel(
@@ -128,7 +123,7 @@ def _apply_emojis_to_channel(
 
 def _resolve_target_channels(
     config: Config, github: GithubClient, event: dict, pr_number: int
-) -> Set[Tuple[str, Optional[str]]]:
+) -> Set[str]:
     """Determine which Slack channels to target based on the review map.
 
     Use the Timeline API to get all teams ever requested, since submitted reviews
@@ -136,12 +131,11 @@ def _resolve_target_channels(
     When PR is closed (merged or closed), add all requested channels.
     Otherwise add only channels the reviewer belongs to
 
-    Returns a set of (channel_id, team_slug) tuples. team_slug is None
-    for legacy mode (no review-map) or fallback to default channel.
+    Returns a set of channel IDs.
     """
     review_map = config.review_map
     if review_map is None:
-        return {(config.slack_channel_id, None)}
+        return {config.slack_channel_id}
 
     org = event["pull_request"]["head"]["repo"]["owner"]["login"]
     pr_state = event["pull_request"].get("state", "open")
@@ -155,20 +149,19 @@ def _resolve_target_channels(
     for team_slug in requested_teams:
         full_team = f"@{org}/{team_slug}".lower()
         if full_team not in review_map.team_to_channel:
-            print(f"  Team {full_team}: not in review map, skipping")
-            continue
-        channel_id = review_map.team_to_channel[full_team]
+            print(f"  Team {full_team}: not in review map, use default")
+        channel_id = review_map.team_to_channel.get(full_team, config.slack_channel_id)
         if pr_state == "closed":
             # Add all channels in this case.
-            target_channels.add((channel_id, team_slug))
+            target_channels.add(channel_id)
         else:
             # Or select only channels the reviewer belongs to.
             is_member = reviewer and github.is_team_member(org, team_slug, reviewer)
             print(f"  Team {full_team}: channel={channel_id}, {reviewer} is_member={is_member}")
             if is_member:
-                target_channels.add((channel_id, team_slug))
+                target_channels.add(channel_id)
 
     if target_channels:
         return target_channels
     print(f"No team match, falling back to default channel {config.slack_channel_id}")
-    return {(config.slack_channel_id, None)}
+    return {config.slack_channel_id}
