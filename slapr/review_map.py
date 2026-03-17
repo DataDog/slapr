@@ -49,11 +49,13 @@ class ReviewMap:
         Only the 'review' subfield is used by ReviewMap. The 'notification'
         subfield is ignored (used by other tools).
         """
-        with open(file_path) as f:
-            raw_map = yaml.safe_load(f)
-
-        if not raw_map:
-            return ReviewMap(team_to_channel={}, default_channel_id=default_channel_id)
+        try:
+            with open(file_path) as f:
+                raw_map = yaml.safe_load(f)
+        except yaml.YamlError as e: # Maybe also some OSErrors
+            raise ValueError("Invalid YAML data for review map") from e
+        if not isinstance(raw_map, dict):
+            raise ValueError(f"Invalid YAML data for review map, should be `dict` got `{type(raw_map)}`")
 
         # First pass: extract channel IDs and collect names that need resolution
         team_to_channel = {}
