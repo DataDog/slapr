@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING, Dict, List, Optional, Set
 
+import re
 import yaml
 
 if TYPE_CHECKING:
@@ -52,7 +53,7 @@ class ReviewMap:
         try:
             with open(file_path) as f:
                 raw_map = yaml.safe_load(f)
-        except yaml.YamlError as e: # Maybe also some OSErrors
+        except yaml.YAMLError as e:
             raise ValueError("Invalid YAML data for review map") from e
         if not isinstance(raw_map, dict):
             raise ValueError(f"Invalid YAML data for review map, should be `dict` got `{type(raw_map)}`")
@@ -60,28 +61,27 @@ class ReviewMap:
         # First pass: extract channel IDs and collect names that need resolution
         team_to_channel = {}
         teams_pending_resolve = defaultdict(list)  # {channel_name: [team_key, ...]}
+        team_format = re.compile(r"\@[a-zA-Z0-9-_]+\/[a-zA-Z0-9-_]+")
         for team, entry in raw_map.items():
             team_key = team.lower()
-            if isinstance(entry, str) and entry == DEFAULT_SLACK_CHANNEL:
-                team_to_channel[team_key] = default_channel_id
-            elif isinstance(entry, dict):
-                review_entry = entry.get("review")
-                if review_entry is None:
-                    print(f"Warning: Entry for {team} has no 'review' subfield, skipping")
-                    continue
-                if not isinstance(review_entry, dict):
-                    print(f"Warning: 'review' for {team} is not a mapping, skipping")
-                    continue
-                channel_id = review_entry.get("id")
-                channel_name = review_entry.get("name")
-                if channel_id:
+            if not team_format.match(team):
+                print(f"Warning: Team {team_key} is not a valid @organization/team-slug format, skipping")
+                continue
+            match entry:
+                case str() if entry == DEFAULT_SLACK_CHANNEL:
+                    team_to_channel[team_key] = default_channel_id
+                case {"review": {"id": str(channel_id), **_rest}}:
                     team_to_channel[team_key] = channel_id
-                elif channel_name:
+                case {"review": {"name": str(channel_name), **_rest}}:
                     teams_pending_resolve[channel_name].append(team_key)
-                else:
+                case {"review": dict()}:
                     print(f"Warning: 'review' for {team} has neither 'id' nor 'name', skipping")
-            else:
-                print(f"Warning: Unexpected format for {team}: {entry!r}, skipping")
+                case {"review": _}:
+                    print(f"Warning: 'review' for {team} is not a mapping, skipping")
+                case dict():
+                    print(f"Warning: Entry for {team} has no 'review' subfield, skipping")
+                case _:
+                    print(f"Warning: Unexpected format for {team}: {entry!r}, skipping")
 
         # Resolve channel names to IDs (only for entries without an ID)
         if teams_pending_resolve:
@@ -102,16 +102,14 @@ class ReviewMap:
 
         return ReviewMap(team_to_channel=team_to_channel, default_channel_id=default_channel_id)
 
-    def get_channel_for_teams(self, requested_teams: List[str]) -> List[str]:
-        """Given a list of team names (e.g., '@datadog/agent-apm'),
-        return the list of matching Slack channel IDs."""
-        channels = []
-        for team in requested_teams:
-            team_key = team.lower()
-            if team_key in self.team_to_channel:
-                channels.append(self.team_to_channel[team_key])
-        return channels
+    def get_channels_for_requested_teams(self, requested_teams: List) -> Set[str]:
+        """Return all Slack channel IDs for the given requested teams.
 
-    def get_all_channels(self) -> Set[str]:
-        """Return all unique channel IDs in the map."""
-        return set(self.team_to_channel.values())
+        Each team is expected to have .organization.login and .slug attributes
+        (PyGithub Team objects). Teams not in the map fall back to default_channel_id.
+        """
+        channels = set()
+        for team in requested_teams:
+            full_team = f"@{team.organization.login}/{team.slug}".lower()
+            channels.add(self.team_to_channel.get(full_team, self.default_channel_id))
+        return channels

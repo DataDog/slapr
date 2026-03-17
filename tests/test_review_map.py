@@ -126,15 +126,14 @@ def test_load_empty_file():
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         f.write(yaml_content)
         f.flush()
-        review_map = ReviewMap.load(f.name, slack_client, default_channel_id="C_DEFAULT")
+        with pytest.raises(ValueError, match="Invalid YAML data for review map"):
+            ReviewMap.load(f.name, slack_client, default_channel_id="C_DEFAULT")
 
     os.unlink(f.name)
 
-    assert review_map.team_to_channel == {}
-    assert review_map.default_channel_id == "C_DEFAULT"
 
 
-def test_get_channel_for_teams():
+def test_get_channels_for_requested_teams():
     review_map = ReviewMap(
         team_to_channel={
             "@datadog/agent-apm": "C_APM",
@@ -143,31 +142,18 @@ def test_get_channel_for_teams():
         default_channel_id="C_DEFAULT",
     )
 
-    assert review_map.get_channel_for_teams(["@datadog/agent-apm"]) == ["C_APM"]
-    assert review_map.get_channel_for_teams(["@datadog/agent-apm", "@datadog/agent-build"]) == ["C_APM", "C_BUILD"]
-    assert review_map.get_channel_for_teams(["@datadog/unknown-team"]) == []
-    assert review_map.get_channel_for_teams([]) == []
+    class FakeOrg:
+        login = "datadog"
 
+    class FakeTeam:
+        def __init__(self, slug):
+            self.slug = slug
+            self.organization = FakeOrg()
 
-def test_get_channel_for_teams_case_insensitive():
-    review_map = ReviewMap(
-        team_to_channel={"@datadog/agent-apm": "C_APM"},
-        default_channel_id="C_DEFAULT",
-    )
-    assert review_map.get_channel_for_teams(["@Datadog/Agent-APM"]) == ["C_APM"]
-
-
-def test_get_all_channels():
-    review_map = ReviewMap(
-        team_to_channel={
-            "@datadog/agent-apm": "C_APM",
-            "@datadog/agent-build": "C_BUILD",
-            "@datadog/agent-ci": "C_APM",  # duplicate channel
-        },
-        default_channel_id="C_DEFAULT",
-    )
-
-    assert review_map.get_all_channels() == {"C_APM", "C_BUILD"}
+    assert review_map.get_channels_for_requested_teams([FakeTeam("agent-apm")]) == {"C_APM"}
+    assert review_map.get_channels_for_requested_teams([FakeTeam("agent-apm"), FakeTeam("agent-build")]) == {"C_APM", "C_BUILD"}
+    assert review_map.get_channels_for_requested_teams([FakeTeam("unknown-team")]) == {"C_DEFAULT"}
+    assert review_map.get_channels_for_requested_teams([]) == set()
 
 
 def test_load_mixed_id_and_resolve():

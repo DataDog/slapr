@@ -56,7 +56,7 @@ Create a YAML file mapping GitHub teams to Slack channels:
 '@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'  # falls back to SLACK_CHANNEL_ID
 ```
 
-- Each team entry has a `review` subfield (and optionally `notification`, which slapr ignores).
+- Each team entry has a `review` subfield.
 - **Preferred format**: provide both `name` (for readability) and `id` (avoids Slack API rate limits) under `review`.
 - When `id` is omitted, the channel name is resolved via the Slack API at startup (requires `channels:read` scope).
 - Only **public channels** are supported. Private channels cannot be resolved by name and are not supported.

@@ -64,60 +64,13 @@ def main(config: Config) -> None:
     # Broadcast review_started to ALL requested team channels, not just the reviewer's.
     # Only on the first review (len==1) — subsequent reviews already have review_started.
     if config.review_map is not None and not pr.merged and pr.state != "closed" and len(reviews) == 1:
-        all_channels = _all_requested_team_channels(config, requested_teams)
+        all_channels = config.review_map.get_channels_for_requested_teams(requested_teams)
         already_processed = set(target_channels.keys())
         for channel_id in all_channels - already_processed:
             print(f"Broadcasting review_started to channel {channel_id}")
             _apply_emojis_to_channel(
                 config, slack, {config.emoji_review_started}, pr_url, channel_id
             )
-
-
-def _all_requested_team_channels(
-    config: Config, requested_teams: List
-) -> Set[str]:
-    """Return all Slack channel IDs for teams requested on this PR."""
-    review_map = config.review_map
-    if review_map is None:
-        return set()
-    channels = set()
-    for team in requested_teams:
-        full_team = f"@{team.organization.login}/{team.slug}".lower()
-        channels.add(review_map.team_to_channel.get(full_team, config.slack_channel_id))
-    return channels
-
-
-def _apply_emojis_to_channel(
-    config: Config,
-    slack: SlackClient,
-    new_emojis: Set[str],
-    pr_url: str,
-    channel_id: str,
-) -> None:
-    timestamp = slack.find_timestamp_of_review_requested_message(pr_url=pr_url, channel_id=channel_id)
-    print(f"Slack message timestamp for channel {channel_id}: {timestamp}")
-
-    if timestamp is None:
-        print(f"No message found requesting review for PR: {pr_url} in channel {channel_id}")
-        return
-
-    existing_emojis = slack.get_emojis_for_user(
-        timestamp=timestamp, channel_id=channel_id, user_id=config.slapr_bot_user_id
-    )
-    print(f"Existing emojis: {', '.join(existing_emojis)}")
-
-    emojis_to_add, emojis_to_remove = emojis.diff(new_emojis=new_emojis, existing_emojis=existing_emojis)
-
-    sorted_emojis_to_add = sorted(emojis_to_add, key=config.emojis_by_review_step)
-
-    print(f"Emojis to add (ordered) : {', '.join(sorted_emojis_to_add)}")
-    print(f"Emojis to remove        : {', '.join(emojis_to_remove)}")
-
-    for emoji in sorted_emojis_to_add:
-        slack.add_reaction(timestamp=timestamp, emoji=emoji, channel_id=channel_id)
-
-    for emoji in emojis_to_remove:
-        slack.remove_reaction(timestamp=timestamp, emoji=emoji, channel_id=channel_id)
 
 
 def _resolve_target_channels(
@@ -156,3 +109,36 @@ def _resolve_target_channels(
         return target_channels
     print(f"No team match, falling back to default channel {config.slack_channel_id}")
     return {config.slack_channel_id: []}
+
+
+def _apply_emojis_to_channel(
+    config: Config,
+    slack: SlackClient,
+    new_emojis: Set[str],
+    pr_url: str,
+    channel_id: str,
+) -> None:
+    timestamp = slack.find_timestamp_of_review_requested_message(pr_url=pr_url, channel_id=channel_id)
+    print(f"Slack message timestamp for channel {channel_id}: {timestamp}")
+
+    if timestamp is None:
+        print(f"No message found requesting review for PR: {pr_url} in channel {channel_id}")
+        return
+
+    existing_emojis = slack.get_emojis_for_user(
+        timestamp=timestamp, channel_id=channel_id, user_id=config.slapr_bot_user_id
+    )
+    print(f"Existing emojis: {', '.join(existing_emojis)}")
+
+    emojis_to_add, emojis_to_remove = emojis.diff(new_emojis=new_emojis, existing_emojis=existing_emojis)
+
+    sorted_emojis_to_add = sorted(emojis_to_add, key=config.emojis_by_review_step)
+
+    print(f"Emojis to add (ordered) : {', '.join(sorted_emojis_to_add)}")
+    print(f"Emojis to remove        : {', '.join(emojis_to_remove)}")
+
+    for emoji in sorted_emojis_to_add:
+        slack.add_reaction(timestamp=timestamp, emoji=emoji, channel_id=channel_id)
+
+    for emoji in emojis_to_remove:
+        slack.remove_reaction(timestamp=timestamp, emoji=emoji, channel_id=channel_id)
