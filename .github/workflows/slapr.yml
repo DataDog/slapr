@@ -16,13 +16,13 @@ jobs:
       name: main
     steps:
     - uses: DataDog/slapr@f4337a20eedf6b840f6d85ee2399f1ee86f109d7 # master
-      env:
-        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        SLACK_CHANNEL_ID: C06P2KX149M
-        SLACK_API_TOKEN: "${{ secrets.SLACK_TOKEN }}"
-        SLAPR_BOT_USER_ID: UTMS06TPX
-        SLAPR_EMOJI_REVIEW_STARTED: "review_started"
-        SLAPR_EMOJI_APPROVED: "approved"
-        SLAPR_EMOJI_CHANGES_REQUESTED: "changes_requested"
-        SLAPR_EMOJI_MERGED: "merged"
-        SLAPR_EMOJI_CLOSED: "closed"
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        slack-api-token: ${{ secrets.SLACK_TOKEN }}
+        slack-channel-id: C06P2KX149M
+        bot-user-id: UTMS06TPX
+        emoji-review-started: review_started
+        emoji-approved: approved
+        emoji-changes-requested: changes_requested
+        emoji-merged: merged
+        emoji-closed: closed

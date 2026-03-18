@@ -1,11 +1,62 @@
 name: 'Hack-A-Dog Slapr'
 description: 'Add emoji on Slack posts on PR updates'
 inputs:
+  github-token:
+    description: 'GitHub API token'
+    required: true
+  slack-api-token:
+    description: 'Slack bot OAuth token'
+    required: true
+  slack-channel-id:
+    description: 'Default Slack channel ID for emoji reactions'
+    required: true
+  bot-user-id:
+    description: 'Slack user ID of the slapr bot'
+    required: true
   review-map:
-    description: 'Path to a YAML file mapping GitHub teams to public Slack channels'
+    description: 'Path to a YAML file mapping GitHub teams to Slack channels'
     required: false
+  number-of-approvals-required:
+    description: 'Minimum approvals for "approved" emoji'
+    required: false
+    default: '1'
+  emoji-review-started:
+    description: 'Emoji name for review started'
+    required: false
+    default: 'review_started'
+  emoji-approved:
+    description: 'Emoji name for approved'
+    required: false
+    default: 'approved'
+  emoji-changes-requested:
+    description: 'Emoji name for changes requested'
+    required: false
+    default: 'changes_requested'
+  emoji-merged:
+    description: 'Emoji name for merged'
+    required: false
+    default: 'merged'
+  emoji-closed:
+    description: 'Emoji name for closed'
+    required: false
+    default: 'closed'
+  emoji-commented:
+    description: 'Emoji name for comment-only review'
+    required: false
+    default: 'comment'
 runs:
   using: 'docker'
   image: 'Dockerfile'
   env:
+    GITHUB_TOKEN: ${{ inputs.github-token }}
+    SLACK_API_TOKEN: ${{ inputs.slack-api-token }}
+    SLACK_CHANNEL_ID: ${{ inputs.slack-channel-id }}
+    SLAPR_BOT_USER_ID: ${{ inputs.bot-user-id }}
     SLAPR_REVIEW_MAP: ${{ inputs.review-map }}
+    SLAPR_NUMBER_OF_APPROVALS_REQUIRED: ${{ inputs.number-of-approvals-required }}
+    SLAPR_EMOJI_REVIEW_STARTED: ${{ inputs.emoji-review-started }}
+    SLAPR_EMOJI_APPROVED: ${{ inputs.emoji-approved }}
+    SLAPR_EMOJI_CHANGES_REQUESTED: ${{ inputs.emoji-changes-requested }}
+    SLAPR_EMOJI_MERGED: ${{ inputs.emoji-merged }}
+    SLAPR_EMOJI_CLOSED: ${{ inputs.emoji-closed }}
+    SLAPR_EMOJI_COMMENTED: ${{ inputs.emoji-commented }}
