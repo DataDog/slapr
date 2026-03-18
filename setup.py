@@ -10,6 +10,6 @@ setup(
     description="Add emoji on Slack posts on PR updates",
     version="0.0.0",
     packages=["slapr"],
-    python_requires=">=3.7",
-    install_requires=["slack_sdk==3.27.1", "pygithub==1.45.*"],
+    python_requires=">=3.10",
+    install_requires=["slack_sdk==3.27.1", "pygithub==1.45.*", "pyyaml>=5.0"],
 )

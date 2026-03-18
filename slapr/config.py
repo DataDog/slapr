@@ -3,9 +3,10 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/)
 # Copyright 2023-present Datadog, Inc.
 
-from typing import Callable, NamedTuple
+from typing import Callable, NamedTuple, Optional
 
 from .github import GithubClient
+from .review_map import ReviewMap
 from .slack import SlackClient
 
 
@@ -24,6 +25,8 @@ class Config(NamedTuple):
     emoji_merged: str
     emoji_closed: str
     emoji_commented: str
+
+    review_map: Optional[ReviewMap] = None
 
     @property
     def emojis_by_review_step(self) -> Callable[[str], int]:

@@ -20,6 +20,7 @@ Examples:
 Slack API Token with following permissions
 
 - `channels:history`
+- `channels:read` (required when using review-map)
 - `reactions:read`
 - `reactions:write`
 
@@ -33,6 +34,39 @@ Slack API Token with following permissions
 | `SLAPR_EMOJI_COMMENTED`      | A review has been submitted with comment only.               |
 | `SLAPR_EMOJI_MERGED`         | The PR is merged.                                            |
 | `SLAPR_EMOJI_CLOSED`         | The PR is closed.                                            |
+
+## Review Map (multi-channel routing)
+
+By default, slapr posts emoji reactions to a single Slack channel (`SLACK_CHANNEL_ID`). With the `review-map` input, you can route reactions to different Slack channels based on which GitHub teams are requested for review.
+
+Create a YAML file mapping GitHub teams to Slack channels:
+
+```yaml
+# github_slack_map.yaml
+'@datadog/agent-apm':
+  review:
+    name: 'apm-review'
+    id: 'C01234ABCDE'          # preferred: name + id (no API call needed)
+  notification:                 # ignored by slapr (used by other tools)
+    name: 'apm-notifications'
+    id: 'C09876FGHIJ'
+'@datadog/agent-build':
+  review:
+    name: 'agent-build'         # id omitted: resolved via Slack API at startup
+'@datadog/agent-ci': 'DEFAULT_SLACK_CHANNEL'  # falls back to SLACK_CHANNEL_ID
+```
+
+- Each team entry has a `review` subfield.
+- **Preferred format**: provide both `name` (for readability) and `id` (avoids Slack API rate limits) under `review`.
+- When `id` is omitted, the channel name is resolved via the Slack API at startup (requires `channels:read` scope).
+- Only **public channels** are supported. Private channels cannot be resolved by name and are not supported.
+- Use `DEFAULT_SLACK_CHANNEL` to route a team to the default `SLACK_CHANNEL_ID`.
+
+On review events, slapr checks the reviewer's team membership (requires `read:org` scope on the GitHub token) and posts to the matching channel. On merge/close events, it uses the GitHub Timeline API to find all teams that were ever requested and posts to each of their channels.
+
+When `review-map` is not set, behavior is identical to before (single channel).
+
+**Note:** Team membership checks require the `read:org` scope. The default `GITHUB_TOKEN` does not have this — you need a PAT or GitHub App token.
 
 ## Example Usage
 
@@ -49,6 +83,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: DataDog/slapr@master
+      with:
+        review-map: .github/review-map.yaml  # optional
       env:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         GITHUB_REPO: DataDog/slapr
