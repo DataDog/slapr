@@ -39,9 +39,10 @@ def select(
     if "changes_requested" in unique_states:
         return config.emoji_needs_change
 
-    approval_count = len([review.state for review in last_reviews if review.state == "approved"])
-    if ("approved" in unique_states) and approval_count >= number_of_approvals_required:
-        return config.emoji_approved
+    approved_reviews = [review for review in last_reviews if review.state == "approved"]
+    if ("approved" in unique_states) and len(approved_reviews) >= number_of_approvals_required:
+        has_inline = any(review.has_inline_comments for review in approved_reviews)
+        return config.emoji_approved_with_comments if has_inline else config.emoji_approved
 
     if "commented" in unique_states:
         return config.emoji_commented
