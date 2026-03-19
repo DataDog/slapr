@@ -11,5 +11,5 @@ setup(
     version="0.0.0",
     packages=["slapr"],
     python_requires=">=3.10",
-    install_requires=["slack_sdk==3.27.1", "pygithub==1.45.*", "pyyaml>=5.0"],
+    install_requires=["slack_sdk==3.41.0", "pygithub==2.8.1", "pyyaml>=5.0"],
 )
