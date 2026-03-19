@@ -30,7 +30,7 @@ config = Config(
     slack_client=slack_client,
     github_client=GithubClient(
         backend=WebGithubBackend(
-            gh=github.Github(os.environ["GITHUB_TOKEN"]),
+            gh=github.Github(auth=github.Auth.Token(os.environ["GITHUB_TOKEN"])),
             event_path=os.environ["GITHUB_EVENT_PATH"],
             repo=os.environ["GITHUB_REPOSITORY"],
         )
