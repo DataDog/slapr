@@ -12,8 +12,6 @@ permissions: {}
 jobs:
   run_slapr:
     runs-on: ubuntu-latest
-    environment:
-      name: main
     steps:
     - uses: DataDog/slapr@f4337a20eedf6b840f6d85ee2399f1ee86f109d7 # master
       env:
