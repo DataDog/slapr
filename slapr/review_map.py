@@ -91,8 +91,8 @@ class ReviewMap:
         if teams_pending_resolve:
             try:
                 name_to_id = slack_client.resolve_channel_names(set(teams_pending_resolve.keys()))
-            except SlackApiError as e:
-                print(f"Warning: Failed to resolve channel names via Slack API: {e}")
+            except (SlackApiError, RuntimeError) as e:
+                print(f"Warning: Failed to resolve channel names {set(teams_pending_resolve.keys())} via Slack API: {e}")
                 print("Entries without channel IDs will be skipped. "
                       "Add 'id' field to avoid this.")
                 name_to_id = {}
