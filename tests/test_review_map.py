@@ -228,6 +228,79 @@ def test_load_notification_ignored():
     assert review_map.team_to_channel == {"@datadog/agent-apm": "C_REVIEW"}
 
 
+def test_load_empty_channel_id_suppresses_notifications(capsys):
+    """Empty channel id should suppress notifications for that team (not crash)."""
+    yaml_content = """
+'@datadog/agent-apm':
+  review:
+    name: 'apm-review'
+    id: 'C_APM'
+'@datadog/agent-config':
+  review:
+    id: ''
+"""
+    slack_client = _make_slack_client({})
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        f.write(yaml_content)
+        f.flush()
+        review_map = ReviewMap.load(f.name, slack_client, default_channel_id="C_DEFAULT")
+
+    os.unlink(f.name)
+
+    assert review_map.team_to_channel == {"@datadog/agent-apm": "C_APM"}
+    assert "suppressed" in capsys.readouterr().out
+
+
+def test_load_empty_channel_name_suppresses_notifications(capsys):
+    """Empty channel name should suppress notifications for that team (not crash)."""
+    yaml_content = """
+'@datadog/agent-apm':
+  review:
+    name: 'apm-review'
+    id: 'C_APM'
+'@datadog/agent-config':
+  review:
+    name: ''
+"""
+    slack_client = _make_slack_client({})
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        f.write(yaml_content)
+        f.flush()
+        review_map = ReviewMap.load(f.name, slack_client, default_channel_id="C_DEFAULT")
+
+    os.unlink(f.name)
+
+    assert review_map.team_to_channel == {"@datadog/agent-apm": "C_APM"}
+    assert "suppressed" in capsys.readouterr().out
+
+
+def test_get_channels_for_requested_teams_skips_suppressed_team():
+    """Teams not in the map still use default, but teams explicitly suppressed are excluded."""
+    review_map = ReviewMap(
+        team_to_channel={
+            "@datadog/agent-apm": "C_APM",
+        },
+        default_channel_id="C_DEFAULT",
+    )
+
+    class FakeOrg:
+        login = "datadog"
+
+    class FakeTeam:
+        def __init__(self, slug):
+            self.slug = slug
+            self.organization = FakeOrg()
+
+    # Team not in map → falls back to default
+    assert review_map.get_channels_for_requested_teams([FakeTeam("unknown-team")]) == {"C_DEFAULT"}
+
+    # When default_channel_id is None, unknown teams produce no channel
+    review_map_no_default = ReviewMap(team_to_channel={}, default_channel_id=None)
+    assert review_map_no_default.get_channels_for_requested_teams([FakeTeam("unknown-team")]) == set()
+
+
 def test_load_multiple_teams_same_channel_name():
     """Multiple teams sharing the same review channel name should all map correctly."""
     yaml_content = """
