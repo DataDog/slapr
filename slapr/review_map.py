@@ -70,10 +70,14 @@ class ReviewMap:
             match entry:
                 case str() if entry == DEFAULT_SLACK_CHANNEL:
                     team_to_channel[team_key] = default_channel_id
-                case {"review": {"id": str(channel_id), **_rest}}:
+                case {"review": {"id": str(channel_id), **_rest}} if channel_id:
                     team_to_channel[team_key] = channel_id
-                case {"review": {"name": str(channel_name), **_rest}}:
+                case {"review": {"id": "", **_rest}}:
+                    print(f"Info: Empty channel id for {team}, notifications suppressed")
+                case {"review": {"name": str(channel_name), **_rest}} if channel_name:
                     teams_pending_resolve[channel_name].append(team_key)
+                case {"review": {"name": "", **_rest}}:
+                    print(f"Info: Empty channel name for {team}, notifications suppressed")
                 case {"review": dict()}:
                     print(f"Warning: 'review' for {team} has neither 'id' nor 'name', skipping")
                 case {"review": _}:
@@ -87,8 +91,8 @@ class ReviewMap:
         if teams_pending_resolve:
             try:
                 name_to_id = slack_client.resolve_channel_names(set(teams_pending_resolve.keys()))
-            except SlackApiError as e:
-                print(f"Warning: Failed to resolve channel names via Slack API: {e}")
+            except (SlackApiError, RuntimeError) as e:
+                print(f"Warning: Failed to resolve channel names {set(teams_pending_resolve.keys())} via Slack API: {e}")
                 print("Entries without channel IDs will be skipped. "
                       "Add 'id' field to avoid this.")
                 name_to_id = {}
@@ -111,5 +115,7 @@ class ReviewMap:
         channels = set()
         for team in requested_teams:
             full_team = f"@{team.organization.login}/{team.slug}".lower()
-            channels.add(self.team_to_channel.get(full_team, self.default_channel_id))
+            channel_id = self.team_to_channel.get(full_team, self.default_channel_id)
+            if channel_id:
+                channels.add(channel_id)
         return channels

@@ -45,7 +45,8 @@ class WebSlackBackend(SlackBackend):
 
     def get_latest_messages(self, channel_id: str) -> List[Message]:
         response = self._client.conversations_history(channel=channel_id)
-        assert response["ok"]
+        if not response["ok"]:
+            raise RuntimeError(f"conversations_history failed for channel {channel_id}: {response}")
         return [
             Message(text=message.get("text", ""), timestamp=message["ts"])
             for message in response["messages"]
@@ -54,7 +55,8 @@ class WebSlackBackend(SlackBackend):
 
     def get_reactions(self, timestamp: str, channel_id: str) -> List[Reaction]:
         response = self._client.reactions_get(channel=channel_id, timestamp=timestamp)
-        assert response["ok"]
+        if not response["ok"]:
+            raise RuntimeError(f"reactions_get failed for channel {channel_id}, timestamp {timestamp}: {response}")
 
         if response["type"] != "message":
             return []
@@ -68,13 +70,16 @@ class WebSlackBackend(SlackBackend):
         except SlackApiError as e:
             if e.response['error'] == 'already_reacted':
                 print(f'Warning: Message {timestamp} has already emote {emoji} within channel {channel_id}')
-                # Ignore already reacted errors
-                pass
             else:
+                print(f'Error: reactions_add failed for channel {channel_id}, emoji {emoji}, timestamp {timestamp}: {e}')
                 raise
 
     def remove_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
-        self._client.reactions_remove(channel=channel_id, name=emoji, timestamp=timestamp)
+        try:
+            self._client.reactions_remove(channel=channel_id, name=emoji, timestamp=timestamp)
+        except SlackApiError as e:
+            print(f'Error: reactions_remove failed for channel {channel_id}, emoji {emoji}, timestamp {timestamp}: {e}')
+            raise
 
     def resolve_channel_names(self, names: Set[str]) -> Dict[str, str]:
         """Resolve channel names to channel IDs using conversations_list with pagination."""
@@ -86,7 +91,8 @@ class WebSlackBackend(SlackBackend):
             if cursor:
                 kwargs["cursor"] = cursor
             response = self._client.conversations_list(**kwargs)
-            assert response["ok"]
+            if not response["ok"]:
+                raise RuntimeError(f"conversations_list failed while resolving {names}: {response}")
             for channel in response["channels"]:
                 if channel["name"] in remaining:
                     result[channel["name"]] = channel["id"]

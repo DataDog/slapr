@@ -97,6 +97,9 @@ def _resolve_target_channels(
         if full_team not in review_map.team_to_channel:
             print(f"  Team {full_team}: not in review map, use default")
         channel_id = review_map.team_to_channel.get(full_team, config.slack_channel_id)
+        if not channel_id:
+            print(f"  Team {full_team}: no channel configured, notifications suppressed")
+            continue
         if pr.state == "closed":
             target_channels[channel_id].append(team)
         else:
