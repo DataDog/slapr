@@ -13,14 +13,14 @@ jobs:
   run_slapr:
     runs-on: ubuntu-latest
     steps:
-    - uses: DataDog/slapr@f4337a20eedf6b840f6d85ee2399f1ee86f109d7 # master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        slack-api-token: ${{ secrets.SLACK_TOKEN }}
-        slack-channel-id: C06P2KX149M
-        bot-user-id: UTMS06TPX
-        emoji-review-started: review_started
-        emoji-approved: approved
-        emoji-changes-requested: changes_requested
-        emoji-merged: merged
-        emoji-closed: closed
+      - uses: DataDog/slapr@3c19d2a0971acfc3f5a3524b508ed233f8ce0e23 # master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          slack-api-token: ${{ secrets.SLACK_TOKEN }}
+          slack-channel-id: C06P2KX149M
+          bot-user-id: UTMS06TPX
+          emoji-review-started: review_started
+          emoji-approved: approved
+          emoji-changes-requested: changes_requested
+          emoji-merged: merged
+          emoji-closed: closed
