@@ -40,6 +40,7 @@ config = Config(
     number_of_approvals_required=max(1, int(os.environ.get("SLAPR_NUMBER_OF_APPROVALS_REQUIRED", 1))),
     emoji_review_started=os.environ.get("SLAPR_EMOJI_REVIEW_STARTED", "review_started"),
     emoji_approved=os.environ.get("SLAPR_EMOJI_APPROVED", "approved"),
+    emoji_approved_with_comments=os.environ.get("SLAPR_EMOJI_APPROVED_WITH_COMMENTS", "approved_with_comments"),
     emoji_needs_change=os.environ.get("SLAPR_EMOJI_CHANGES_REQUESTED", "changes_requested"),
     emoji_merged=os.environ.get("SLAPR_EMOJI_MERGED", "merged"),
     emoji_closed=os.environ.get("SLAPR_EMOJI_CLOSED", "closed"),

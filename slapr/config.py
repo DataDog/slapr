@@ -21,6 +21,7 @@ class Config(NamedTuple):
 
     emoji_review_started: str
     emoji_approved: str
+    emoji_approved_with_comments: str
     emoji_needs_change: str
     emoji_merged: str
     emoji_closed: str
@@ -39,6 +40,7 @@ class Config(NamedTuple):
             self.emoji_commented,
             self.emoji_needs_change,
             self.emoji_approved,
+            self.emoji_approved_with_comments,
             self.emoji_closed,
             self.emoji_merged,
         ]

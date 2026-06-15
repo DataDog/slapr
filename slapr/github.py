@@ -12,6 +12,7 @@ from github import Github
 class Review(NamedTuple):
     state: str
     user: object  # NamedUser in production, MockUser in tests
+    has_inline_comments: bool = False
 
 
 class PullRequest(NamedTuple):
@@ -51,8 +52,20 @@ class WebGithubBackend(GithubBackend):
             return json.load(f)
 
     def get_pr_reviews(self, pr_number: int) -> List[Review]:
-        reviews = self._gh.get_repo(self.repo).get_pull(pr_number).get_reviews()
-        return [Review(state=review.state.lower(), user=review.user) for review in reviews]
+        pull = self._gh.get_repo(self.repo).get_pull(pr_number)
+        reviews = pull.get_reviews()
+        # Fetch all review comments once and group by review ID to detect inline comments
+        review_ids_with_comments = {
+            comment.raw_data["pull_request_review_id"] for comment in pull.get_review_comments()
+        }
+        return [
+            Review(
+                state=review.state.lower(),
+                user=review.user,
+                has_inline_comments=review.id in review_ids_with_comments,
+            )
+            for review in reviews
+        ]
 
     def get_pr(self, pr_number: int) -> PullRequest:
         pr = self._gh.get_repo(self.repo).get_pull(pr_number)
