@@ -9,7 +9,7 @@ from typing import Dict, List, NamedTuple, Optional, Set
 import slack_sdk
 from slack_sdk.errors import SlackApiError
 
-PR_URL_PATTERN = r"<(?P<url>.*)>"
+PR_URL_PATTERN = r"<(?P<url>https?://[^>|]+)(?:\|[^>]*)?>"
 
 
 class Message(NamedTuple):
@@ -111,20 +111,14 @@ class SlackClient:
         messages = self._backend.get_latest_messages(channel_id=channel_id)
 
         for message in messages:
-            match = re.search(PR_URL_PATTERN, message.text)
+            for match in re.finditer(PR_URL_PATTERN, message.text):
+                # Examples:
+                # https://github.com/owner/repo/pull/6/files
+                # https://github.com/owner/repo/pull/6/s
+                url = match.group("url")
 
-            if match is None:
-                continue
-
-            # Examples:
-            # https://github.com/owner/repo/pull/6/files
-            # https://github.com/owner/repo/pull/6/s
-            url = match.group("url")
-
-            if not url.startswith(pr_url):
-                continue
-
-            return message.timestamp
+                if url.startswith(pr_url):
+                    return message.timestamp
 
         return None
 
