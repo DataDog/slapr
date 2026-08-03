@@ -255,6 +255,88 @@ def test_on_pull_request_review(
 
 
 @pytest.mark.parametrize(
+    "reviews, reactions, partial_emoji, expected_emojis",
+    [
+        pytest.param(
+            [Review(state="approved", user=_user("alice"))],
+            [],
+            "test_partially_approved",
+            ["test_review_started", "test_partially_approved"],
+            id="approval-below-threshold",
+        ),
+        pytest.param(
+            [
+                Review(state="approved", user=_user("alice")),
+                Review(state="approved", user=_user("bob")),
+            ],
+            [Reaction(emoji="test_partially_approved", user_ids=["U1234"])],
+            "test_partially_approved",
+            ["test_review_started", "test_approved"],
+            id="approval-threshold-met",
+        ),
+        pytest.param(
+            [Review(state="approved", user=_user("alice"))],
+            [],
+            None,
+            ["test_review_started"],
+            id="partial-emoji-not-configured",
+        ),
+        pytest.param(
+            [
+                Review(state="approved", user=_user("alice")),
+                Review(state="commented", user=_user("bob")),
+            ],
+            [],
+            "test_partially_approved",
+            ["test_review_started", "test_partially_approved"],
+            id="partial-approval-takes-precedence-over-comment",
+        ),
+        pytest.param(
+            [
+                Review(state="approved", user=_user("alice")),
+                Review(state="changes_requested", user=_user("bob")),
+            ],
+            [Reaction(emoji="test_partially_approved", user_ids=["U1234"])],
+            "test_partially_approved",
+            ["test_review_started", "test_needs_change"],
+            id="changes-requested-takes-precedence",
+        ),
+    ],
+)
+def test_multiple_approvals(
+    reviews: List[Review],
+    reactions: List[Reaction],
+    partial_emoji: Optional[str],
+    expected_emojis: List[str],
+) -> None:
+    messages = [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")]
+    slack_backend = MockSlackBackend(messages=messages, target_message=messages[0], reactions=reactions)
+    github_backend = MockGithubBackend(
+        reviews=reviews,
+        event=MOCK_EVENT,
+        pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
+    )
+
+    config = Config(
+        slack_client=SlackClient(backend=slack_backend),
+        github_client=GithubClient(backend=github_backend),
+        slack_channel_id="C1234",
+        slapr_bot_user_id="U1234",
+        number_of_approvals_required=2,
+        emoji_review_started="test_review_started",
+        emoji_approved="test_approved",
+        emoji_needs_change="test_needs_change",
+        emoji_merged="test_merged",
+        emoji_closed="test_closed",
+        emoji_commented="test_commented",
+        emoji_partially_approved=partial_emoji,
+    )
+    slapr.main(config)
+
+    assert slack_backend.emojis == expected_emojis
+
+
+@pytest.mark.parametrize(
     "event, pr, reactions, expected_emojis",
     [
         pytest.param(

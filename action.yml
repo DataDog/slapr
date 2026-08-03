@@ -28,6 +28,9 @@ inputs:
     description: 'Emoji name for approved'
     required: false
     default: 'approved'
+  emoji-partially-approved:
+    description: 'Emoji name shown when approvals are present but below the required count'
+    required: false
   emoji-changes-requested:
     description: 'Emoji name for changes requested'
     required: false
@@ -56,6 +59,7 @@ runs:
     SLAPR_NUMBER_OF_APPROVALS_REQUIRED: ${{ inputs.number-of-approvals-required }}
     SLAPR_EMOJI_REVIEW_STARTED: ${{ inputs.emoji-review-started }}
     SLAPR_EMOJI_APPROVED: ${{ inputs.emoji-approved }}
+    SLAPR_EMOJI_PARTIALLY_APPROVED: ${{ inputs.emoji-partially-approved }}
     SLAPR_EMOJI_CHANGES_REQUESTED: ${{ inputs.emoji-changes-requested }}
     SLAPR_EMOJI_MERGED: ${{ inputs.emoji-merged }}
     SLAPR_EMOJI_CLOSED: ${{ inputs.emoji-closed }}

@@ -29,6 +29,7 @@ Slack API Token with following permissions
 | emoji                        | description                                                  |
 |------------------------------|--------------------------------------------------------------|
 | `SLAPR_EMOJI_REVIEW_STARTED` | The PR has at least 1 in-progress review.                    |
+| `SLAPR_EMOJI_PARTIALLY_APPROVED` | The PR has approvals, but fewer than the configured minimum. |
 | `SLAPR_EMOJI_APPROVED`       | The PR has all required approvals and is ready to be merged. |
 | `SLAPR_EMOJI_NEEDS_CHANGES`  | Changes are requested for the PR.                            |
 | `SLAPR_EMOJI_COMMENTED`      | A review has been submitted with comment only.               |
@@ -84,15 +85,18 @@ jobs:
     steps:
     - uses: DataDog/slapr@master
       with:
+        github-token: "${{ secrets.GITHUB_TOKEN }}"
+        slack-api-token: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"
+        slack-channel-id: CNY5XCHAA
+        bot-user-id: UTMS06TPX
         review-map: .github/review-map.yaml  # optional
-      env:
-        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-        GITHUB_REPO: DataDog/slapr
-        SLACK_CHANNEL_ID: CNY5XCHAA
-        SLACK_API_TOKEN: "${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}"
-        SLAPR_BOT_USER_ID: UTMS06TPX
-        SLAPR_NUMBER_OF_APPROVALS_REQUIRED: 2 # integer minimum=1 default=1. The number of approvals that are required for the approval emoji to be added in Slack
+        number-of-approvals-required: 2
+        emoji-partially-approved: next_track_button # :next_track_button:
+        emoji-approved: ship # :ship:
 ```
+
+`emoji-partially-approved` is opt-in. When it is not configured, approvals below
+the required count do not add a separate status emoji, preserving the existing behavior.
 
 ## Troubleshoot
 
