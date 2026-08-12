@@ -4,11 +4,12 @@
 # Copyright 2023-present Datadog, Inc.
 
 import re
-from typing import List, NamedTuple, Optional, Set
+from typing import Dict, List, NamedTuple, Optional, Set
 
-import slack
+import slack_sdk
+from slack_sdk.errors import SlackApiError
 
-PR_URL_PATTERN = r"<(?P<url>.*)>"
+PR_URL_PATTERN = r"<(?P<url>https?://[^>|]+)(?:\|[^>]*)?>"
 
 
 class Message(NamedTuple):
@@ -34,14 +35,18 @@ class SlackBackend:
     def remove_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
         raise NotImplementedError  # pragma: no cover
 
+    def resolve_channel_names(self, names: Set[str]) -> Dict[str, str]:
+        raise NotImplementedError  # pragma: no cover
+
 
 class WebSlackBackend(SlackBackend):
-    def __init__(self, client: slack.WebClient) -> None:
+    def __init__(self, client: slack_sdk.WebClient) -> None:
         self._client = client
 
     def get_latest_messages(self, channel_id: str) -> List[Message]:
         response = self._client.conversations_history(channel=channel_id)
-        assert response["ok"]
+        if not response["ok"]:
+            raise RuntimeError(f"conversations_history failed for channel {channel_id}: {response}")
         return [
             Message(text=message.get("text", ""), timestamp=message["ts"])
             for message in response["messages"]
@@ -50,7 +55,8 @@ class WebSlackBackend(SlackBackend):
 
     def get_reactions(self, timestamp: str, channel_id: str) -> List[Reaction]:
         response = self._client.reactions_get(channel=channel_id, timestamp=timestamp)
-        assert response["ok"]
+        if not response["ok"]:
+            raise RuntimeError(f"reactions_get failed for channel {channel_id}, timestamp {timestamp}: {response}")
 
         if response["type"] != "message":
             return []
@@ -59,10 +65,42 @@ class WebSlackBackend(SlackBackend):
         return [Reaction(emoji=reaction["name"], user_ids=reaction["users"]) for reaction in reactions]
 
     def add_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
-        self._client.reactions_add(channel=channel_id, name=emoji, timestamp=timestamp)
+        try:
+            self._client.reactions_add(channel=channel_id, name=emoji, timestamp=timestamp)
+        except SlackApiError as e:
+            if e.response['error'] == 'already_reacted':
+                print(f'Warning: Message {timestamp} has already emote {emoji} within channel {channel_id}')
+            else:
+                print(f'Error: reactions_add failed for channel {channel_id}, emoji {emoji}, timestamp {timestamp}: {e}')
+                raise
 
     def remove_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
-        self._client.reactions_remove(channel=channel_id, name=emoji, timestamp=timestamp)
+        try:
+            self._client.reactions_remove(channel=channel_id, name=emoji, timestamp=timestamp)
+        except SlackApiError as e:
+            print(f'Error: reactions_remove failed for channel {channel_id}, emoji {emoji}, timestamp {timestamp}: {e}')
+            raise
+
+    def resolve_channel_names(self, names: Set[str]) -> Dict[str, str]:
+        """Resolve channel names to channel IDs using conversations_list with pagination."""
+        remaining = set(names)
+        result = {}
+        cursor = None
+        while remaining:
+            kwargs = {"types": "public_channel", "limit": 200}
+            if cursor:
+                kwargs["cursor"] = cursor
+            response = self._client.conversations_list(**kwargs)
+            if not response["ok"]:
+                raise RuntimeError(f"conversations_list failed while resolving {names}: {response}")
+            for channel in response["channels"]:
+                if channel["name"] in remaining:
+                    result[channel["name"]] = channel["id"]
+                    remaining.discard(channel["name"])
+            cursor = response.get("response_metadata", {}).get("next_cursor")
+            if not cursor:
+                break
+        return result
 
 
 class SlackClient:
@@ -73,20 +111,14 @@ class SlackClient:
         messages = self._backend.get_latest_messages(channel_id=channel_id)
 
         for message in messages:
-            match = re.search(PR_URL_PATTERN, message.text)
+            for match in re.finditer(PR_URL_PATTERN, message.text):
+                # Examples:
+                # https://github.com/owner/repo/pull/6/files
+                # https://github.com/owner/repo/pull/6/s
+                url = match.group("url")
 
-            if match is None:
-                continue
-
-            # Examples:
-            # https://github.com/owner/repo/pull/6/files
-            # https://github.com/owner/repo/pull/6/s
-            url = match.group("url")
-
-            if not url.startswith(pr_url):
-                continue
-
-            return message.timestamp
+                if url.startswith(pr_url):
+                    return message.timestamp
 
         return None
 
@@ -99,3 +131,6 @@ class SlackClient:
 
     def remove_reaction(self, timestamp: str, emoji: str, channel_id: str) -> None:
         self._backend.remove_reaction(timestamp=timestamp, emoji=emoji, channel_id=channel_id)
+
+    def resolve_channel_names(self, names: Set[str]) -> Dict[str, str]:
+        return self._backend.resolve_channel_names(names)
