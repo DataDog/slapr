@@ -183,6 +183,21 @@ MOCK_EVENT = {
             id="approval",
         ),
         pytest.param(
+            [
+                Message(
+                    text=(
+                        "<!subteam^S1234> CR Please - "
+                        "<https://github.com/example/repo/pull/42|github.com/example/repo/pull/42>"
+                    ),
+                    timestamp="yyyy-mm-dd",
+                )
+            ],
+            [Review(state="approved", user=_user("alice"))],
+            [],
+            ["test_review_started", "test_approved"],
+            id="approval-with-user-group-mention-before-link",
+        ),
+        pytest.param(
             [Message(text="Need :eyes: <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")],
             [Review(state="changes_requested", user=_user("alice"))],
             [],
