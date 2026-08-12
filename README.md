@@ -20,6 +20,7 @@ Examples:
 Slack API Token with following permissions
 
 - `channels:history`
+- `groups:history` - Needed if your review channel is private
 - `channels:read` (required when using review-map)
 - `reactions:read`
 - `reactions:write`
