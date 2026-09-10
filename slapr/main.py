@@ -9,7 +9,7 @@ from typing import Dict, List, Set
 from . import emojis
 from .config import Config
 from .github import GithubClient, PullRequest
-from .slack import SlackClient
+from .slack import SlackChannelAccessError, SlackClient
 
 
 def main(config: Config) -> None:
@@ -67,7 +67,7 @@ def main(config: Config) -> None:
         all_channels = config.review_map.get_channels_for_requested_teams(requested_teams)
         already_processed = set(target_channels.keys())
         for channel_id in all_channels - already_processed:
-            print(f"Broadcasting review_started to channel {channel_id}")
+            print(f"Broadcasting review_started to channel {_channel_label(config, channel_id)}")
             _apply_emojis_to_channel(
                 config, slack, {config.emoji_review_started}, pr_url, channel_id
             )
@@ -104,14 +104,23 @@ def _resolve_target_channels(
             target_channels[channel_id].append(team)
         else:
             is_member = reviewer and team.has_in_members(reviewer)
-            print(f"  Team {full_team}: channel={channel_id}, {reviewer.login if reviewer else None} is_member={is_member}")
+            print(
+                f"  Team {full_team}: channel={_channel_label(config, channel_id)}, "
+                f"{reviewer.login if reviewer else None} is_member={is_member}"
+            )
             if is_member:
                 target_channels[channel_id].append(team)
 
     if target_channels:
         return target_channels
-    print(f"No team match, falling back to default channel {config.slack_channel_id}")
+    print(f"No team match, falling back to default channel {_channel_label(config, config.slack_channel_id)}")
     return {config.slack_channel_id: []}
+
+
+def _channel_label(config: Config, channel_id: str) -> str:
+    if config.review_map is not None:
+        return config.review_map.format_channel(channel_id)
+    return channel_id
 
 
 def _apply_emojis_to_channel(
@@ -121,16 +130,27 @@ def _apply_emojis_to_channel(
     pr_url: str,
     channel_id: str,
 ) -> None:
-    timestamp = slack.find_timestamp_of_review_requested_message(pr_url=pr_url, channel_id=channel_id)
-    print(f"Slack message timestamp for channel {channel_id}: {timestamp}")
+    channel_label = _channel_label(config, channel_id)
+    try:
+        timestamp = slack.find_timestamp_of_review_requested_message(pr_url=pr_url, channel_id=channel_id)
+    except SlackChannelAccessError as e:
+        _log_channel_access_error(config, e)
+        raise
+
+    print(f"Slack message timestamp for channel {channel_label}: {timestamp}")
 
     if timestamp is None:
-        print(f"No message found requesting review for PR: {pr_url} in channel {channel_id}")
+        print(f"No message found requesting review for PR: {pr_url} in channel {channel_label}")
         return
 
-    existing_emojis = slack.get_emojis_for_user(
-        timestamp=timestamp, channel_id=channel_id, user_id=config.slapr_bot_user_id
-    )
+    try:
+        existing_emojis = slack.get_emojis_for_user(
+            timestamp=timestamp, channel_id=channel_id, user_id=config.slapr_bot_user_id
+        )
+    except SlackChannelAccessError as e:
+        _log_channel_access_error(config, e)
+        raise
+
     print(f"Existing emojis: {', '.join(existing_emojis)}")
 
     emojis_to_add, emojis_to_remove = emojis.diff(new_emojis=new_emojis, existing_emojis=existing_emojis)
@@ -141,7 +161,26 @@ def _apply_emojis_to_channel(
     print(f"Emojis to remove        : {', '.join(emojis_to_remove)}")
 
     for emoji in sorted_emojis_to_add:
-        slack.add_reaction(timestamp=timestamp, emoji=emoji, channel_id=channel_id)
+        try:
+            slack.add_reaction(timestamp=timestamp, emoji=emoji, channel_id=channel_id)
+        except SlackChannelAccessError as e:
+            _log_channel_access_error(config, e)
+            raise
 
     for emoji in emojis_to_remove:
-        slack.remove_reaction(timestamp=timestamp, emoji=emoji, channel_id=channel_id)
+        try:
+            slack.remove_reaction(timestamp=timestamp, emoji=emoji, channel_id=channel_id)
+        except SlackChannelAccessError as e:
+            _log_channel_access_error(config, e)
+            raise
+
+
+def _log_channel_access_error(config: Config, error: SlackChannelAccessError) -> None:
+    channel_label = _channel_label(config, error.channel_id)
+    if error.error == "not_in_channel":
+        print(
+            f"Error: Slapr bot is not installed in channel {channel_label}. "
+            "Invite the bot to this channel to enable emoji reactions."
+        )
+    else:
+        print(f"Error: Cannot access channel {channel_label}: {error.error}")
