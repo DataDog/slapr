@@ -12,6 +12,15 @@ from slack_sdk.errors import SlackApiError
 PR_URL_PATTERN = r"<(?P<url>https?://[^>|]+)(?:\|[^>]*)?>"
 
 
+class SlackChannelAccessError(Exception):
+    """Raised when the Slack bot cannot access a channel."""
+
+    def __init__(self, channel_id: str, error: str) -> None:
+        self.channel_id = channel_id
+        self.error = error
+        super().__init__(f"Slack API error '{error}' for channel {channel_id}")
+
+
 class Message(NamedTuple):
     text: str
     timestamp: str
@@ -44,7 +53,12 @@ class WebSlackBackend(SlackBackend):
         self._client = client
 
     def get_latest_messages(self, channel_id: str) -> List[Message]:
-        response = self._client.conversations_history(channel=channel_id)
+        try:
+            response = self._client.conversations_history(channel=channel_id)
+        except SlackApiError as e:
+            if e.response["error"] == "not_in_channel":
+                raise SlackChannelAccessError(channel_id, "not_in_channel") from e
+            raise
         if not response["ok"]:
             raise RuntimeError(f"conversations_history failed for channel {channel_id}: {response}")
         return [
@@ -54,7 +68,12 @@ class WebSlackBackend(SlackBackend):
         ]
 
     def get_reactions(self, timestamp: str, channel_id: str) -> List[Reaction]:
-        response = self._client.reactions_get(channel=channel_id, timestamp=timestamp)
+        try:
+            response = self._client.reactions_get(channel=channel_id, timestamp=timestamp)
+        except SlackApiError as e:
+            if e.response["error"] == "not_in_channel":
+                raise SlackChannelAccessError(channel_id, "not_in_channel") from e
+            raise
         if not response["ok"]:
             raise RuntimeError(f"reactions_get failed for channel {channel_id}, timestamp {timestamp}: {response}")
 
@@ -70,6 +89,8 @@ class WebSlackBackend(SlackBackend):
         except SlackApiError as e:
             if e.response['error'] == 'already_reacted':
                 print(f'Warning: Message {timestamp} has already emote {emoji} within channel {channel_id}')
+            elif e.response['error'] == 'not_in_channel':
+                raise SlackChannelAccessError(channel_id, "not_in_channel") from e
             else:
                 print(f'Error: reactions_add failed for channel {channel_id}, emoji {emoji}, timestamp {timestamp}: {e}')
                 raise
@@ -78,6 +99,8 @@ class WebSlackBackend(SlackBackend):
         try:
             self._client.reactions_remove(channel=channel_id, name=emoji, timestamp=timestamp)
         except SlackApiError as e:
+            if e.response['error'] == 'not_in_channel':
+                raise SlackChannelAccessError(channel_id, "not_in_channel") from e
             print(f'Error: reactions_remove failed for channel {channel_id}, emoji {emoji}, timestamp {timestamp}: {e}')
             raise
 

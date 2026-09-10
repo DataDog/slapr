@@ -20,15 +20,37 @@ DEFAULT_SLACK_CHANNEL = "DEFAULT_SLACK_CHANNEL"
 
 
 class ReviewMap:
-    def __init__(self, team_to_channel: Dict[str, str], default_channel_id: Optional[str]):
+    def __init__(
+        self,
+        team_to_channel: Dict[str, str],
+        default_channel_id: Optional[str],
+        channel_id_to_name: Optional[Dict[str, str]] = None,
+    ):
         """
         Args:
             team_to_channel: Mapping of team names to Slack channel IDs.
                              Keys are lowercase, e.g. "@datadog/agent-apm" -> "C01234".
             default_channel_id: Fallback channel ID when no team matches.
+            channel_id_to_name: Optional mapping of channel IDs to human-readable names.
         """
         self.team_to_channel = team_to_channel
         self.default_channel_id = default_channel_id
+        self.channel_id_to_name = channel_id_to_name or {}
+        self.channel_id_to_teams: Dict[str, List[str]] = {}
+        for team, channel_id in team_to_channel.items():
+            self.channel_id_to_teams.setdefault(channel_id, []).append(team)
+
+    def format_channel(self, channel_id: str) -> str:
+        """Return a human-readable channel label for logs and errors."""
+        name = self.channel_id_to_name.get(channel_id)
+        teams = self.channel_id_to_teams.get(channel_id, [])
+        if name:
+            label = f"#{name} ({channel_id})"
+        else:
+            label = channel_id
+        if teams:
+            label += f" [{', '.join(teams)}]"
+        return label
 
     @staticmethod
     def load(file_path: str, slack_client: "SlackClient", default_channel_id: str) -> "ReviewMap":
@@ -60,6 +82,7 @@ class ReviewMap:
 
         # First pass: extract channel IDs and collect names that need resolution
         team_to_channel = {}
+        channel_id_to_name: Dict[str, str] = {}
         teams_pending_resolve = defaultdict(list)  # {channel_name: [team_key, ...]}
         team_format = re.compile(r"\@[a-zA-Z0-9-_]+\/[a-zA-Z0-9-_]+")
         for team, entry in raw_map.items():
@@ -70,6 +93,9 @@ class ReviewMap:
             match entry:
                 case str() if entry == DEFAULT_SLACK_CHANNEL:
                     team_to_channel[team_key] = default_channel_id
+                case {"review": {"id": str(channel_id), "name": str(channel_name), **_rest}} if channel_id and channel_name:
+                    team_to_channel[team_key] = channel_id
+                    channel_id_to_name[channel_id] = channel_name
                 case {"review": {"id": str(channel_id), **_rest}} if channel_id:
                     team_to_channel[team_key] = channel_id
                 case {"review": {"id": "", **_rest}}:
@@ -99,12 +125,18 @@ class ReviewMap:
 
             for channel_name, team_keys in teams_pending_resolve.items():
                 if channel_name in name_to_id:
+                    channel_id = name_to_id[channel_name]
+                    channel_id_to_name[channel_id] = channel_name
                     for team_key in team_keys:
-                        team_to_channel[team_key] = name_to_id[channel_name]
+                        team_to_channel[team_key] = channel_id
                 else:
                     print(f"Warning: Could not resolve channel '{channel_name}' for teams {', '.join(team_keys)}, skipping")
 
-        return ReviewMap(team_to_channel=team_to_channel, default_channel_id=default_channel_id)
+        return ReviewMap(
+            team_to_channel=team_to_channel,
+            default_channel_id=default_channel_id,
+            channel_id_to_name=channel_id_to_name,
+        )
 
     def get_channels_for_requested_teams(self, requested_teams: List) -> Set[str]:
         """Return all Slack channel IDs for the given requested teams.

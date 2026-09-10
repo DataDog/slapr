@@ -11,7 +11,7 @@ import slapr
 from slapr.config import Config
 from slapr.github import GithubBackend, GithubClient, PullRequest, Review
 from slapr.review_map import ReviewMap
-from slapr.slack import Message, Reaction, SlackBackend, SlackClient
+from slapr.slack import Message, Reaction, SlackBackend, SlackChannelAccessError, SlackClient
 
 
 # --- Mock GitHub objects (stand-ins for PyGithub types) ---
@@ -601,3 +601,60 @@ def test_review_started_broadcast_to_all_requested_team_channels():
     assert slack_backend.channel_emojis["C_APM"] == ["test_review_started", "test_approved"]
     # agent-build was also requested: should get review_started even though alice is not a member
     assert slack_backend.channel_emojis["C_BUILD"] == ["test_review_started"]
+
+
+class NotInChannelSlackBackend(MockSlackBackend):
+    def get_latest_messages(self, channel_id: str) -> List[Message]:
+        if channel_id == "C_BLOCKED":
+            raise SlackChannelAccessError(channel_id, "not_in_channel")
+        return super().get_latest_messages(channel_id)
+
+
+def test_not_in_channel_logs_channel_name_and_raises(capsys):
+    """When the bot is not in a channel, log a clear message and fail the job."""
+    messages_ok = [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="ts-ok")]
+    messages_blocked = [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="ts-blocked")]
+
+    slack_backend = NotInChannelSlackBackend(
+        messages=[],
+        target_message=messages_ok[0],
+        reactions=[],
+        channel_messages={"C_OK": messages_ok, "C_BLOCKED": messages_blocked},
+        channel_reactions={"C_OK": [], "C_BLOCKED": []},
+    )
+    github_backend = MockGithubBackend(
+        reviews=[Review(state="approved", user=_user("alice"))],
+        event=MOCK_EVENT_MERGE_WITH_OWNER,
+        pr=PullRequest(state="closed", merged=True, mergeable_state="clean"),
+        requested_teams_timeline=["agent-apm", "agent-build"],
+        team_members={"agent-apm": ["alice"], "agent-build": ["alice"]},
+    )
+
+    review_map = ReviewMap(
+        team_to_channel={"@datadog/agent-apm": "C_OK", "@datadog/agent-build": "C_BLOCKED"},
+        default_channel_id="C_DEFAULT",
+        channel_id_to_name={"C_OK": "apm-review", "C_BLOCKED": "agent-build-review"},
+    )
+
+    config = Config(
+        slack_client=SlackClient(backend=slack_backend),
+        github_client=GithubClient(backend=github_backend),
+        slack_channel_id="C_DEFAULT",
+        slapr_bot_user_id="U1234",
+        number_of_approvals_required=1,
+        emoji_review_started="test_review_started",
+        emoji_approved="test_approved",
+        emoji_needs_change="test_needs_change",
+        emoji_merged="test_merged",
+        emoji_closed="test_closed",
+        emoji_commented="test_commented",
+        review_map=review_map,
+    )
+    with pytest.raises(SlackChannelAccessError) as exc_info:
+        slapr.main(config)
+
+    output = capsys.readouterr().out
+    assert "not installed in channel #agent-build-review (C_BLOCKED) [@datadog/agent-build]" in output
+    assert exc_info.value.channel_id == "C_BLOCKED"
+    assert slack_backend.channel_emojis["C_OK"] == ["test_approved", "test_merged"]
+    assert slack_backend.channel_emojis.get("C_BLOCKED", []) == []
