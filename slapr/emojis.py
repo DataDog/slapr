@@ -3,7 +3,6 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/)
 # Copyright 2023-present Datadog, Inc.
 
-import itertools
 from typing import List, Optional, Set, Tuple
 
 from .github import Review
@@ -17,23 +16,19 @@ def select(
     number_of_approvals_required: int,
 ) -> Optional[str]:
 
-    all_reviews_by_author = {
-        user_login: list(author_reviews)
-        for user_login, author_reviews in itertools.groupby(reviews, key=lambda review: review.user.login)
-    }
+    last_review_by_author = {review.user.login: review for review in reviews}
 
     # Keep only reviews from authors belonging to the same team(s) as the reviewer
     if reviewer_teams:
-        reviews_by_author = {}
-        for author_login, author_reviews in all_reviews_by_author.items():
-            author_user = author_reviews[0].user
-            if any(t.has_in_members(author_user) for t in reviewer_teams):
-                reviews_by_author[author_login] = author_reviews
+        last_reviews = [
+            review
+            for review in last_review_by_author.values()
+            if any(team.has_in_members(review.user) for team in reviewer_teams)
+        ]
     else:
         # No review map or no team match: consider all reviews
-        reviews_by_author = all_reviews_by_author
+        last_reviews = list(last_review_by_author.values())
 
-    last_reviews = [reviews[-1] for reviews in reviews_by_author.values() if reviews]
     unique_states = {review.state for review in last_reviews}
 
     if "changes_requested" in unique_states:
@@ -42,6 +37,9 @@ def select(
     approval_count = len([review.state for review in last_reviews if review.state == "approved"])
     if ("approved" in unique_states) and approval_count >= number_of_approvals_required:
         return config.emoji_approved
+
+    if approval_count > 0 and config.emoji_partially_approved:
+        return config.emoji_partially_approved
 
     if "commented" in unique_states:
         return config.emoji_commented

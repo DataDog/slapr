@@ -26,6 +26,7 @@ class Config(NamedTuple):
     emoji_closed: str
     emoji_commented: str
 
+    emoji_partially_approved: Optional[str] = None
     review_map: Optional[ReviewMap] = None
 
     @property
@@ -38,9 +39,15 @@ class Config(NamedTuple):
             self.emoji_review_started,
             self.emoji_commented,
             self.emoji_needs_change,
-            self.emoji_approved,
-            self.emoji_closed,
-            self.emoji_merged,
         ]
+        if self.emoji_partially_approved:
+            review_steps_as_emojis.append(self.emoji_partially_approved)
+        review_steps_as_emojis.extend(
+            [
+                self.emoji_approved,
+                self.emoji_closed,
+                self.emoji_merged,
+            ]
+        )
 
         return lambda emoji: review_steps_as_emojis.index(emoji)

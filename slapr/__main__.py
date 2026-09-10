@@ -44,6 +44,7 @@ config = Config(
     emoji_merged=os.environ.get("SLAPR_EMOJI_MERGED", "merged"),
     emoji_closed=os.environ.get("SLAPR_EMOJI_CLOSED", "closed"),
     emoji_commented=os.environ.get("SLAPR_EMOJI_COMMENTED", "comment"),
+    emoji_partially_approved=os.environ.get("SLAPR_EMOJI_PARTIALLY_APPROVED") or None,
     review_map=review_map,
 )
 
