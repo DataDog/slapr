@@ -16,6 +16,9 @@ inputs:
   review-map:
     description: 'Path to a YAML file mapping GitHub teams to Slack channels'
     required: false
+  approval-config:
+    description: 'Path to a YAML file mapping approval states to emoji names'
+    required: false
   number-of-approvals-required:
     description: 'Minimum approvals for "approved" emoji'
     required: false
@@ -56,6 +59,7 @@ runs:
     SLACK_CHANNEL_ID: ${{ inputs.slack-channel-id }}
     SLAPR_BOT_USER_ID: ${{ inputs.bot-user-id }}
     SLAPR_REVIEW_MAP: ${{ inputs.review-map }}
+    SLAPR_APPROVAL_CONFIG: ${{ inputs.approval-config }}
     SLAPR_NUMBER_OF_APPROVALS_REQUIRED: ${{ inputs.number-of-approvals-required }}
     SLAPR_EMOJI_REVIEW_STARTED: ${{ inputs.emoji-review-started }}
     SLAPR_EMOJI_APPROVED: ${{ inputs.emoji-approved }}
