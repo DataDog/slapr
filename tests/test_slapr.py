@@ -8,6 +8,8 @@ from typing import Dict, List, Optional, Set
 import pytest
 
 import slapr
+from slapr.approval import ApprovalState
+from slapr.approval_config import ApprovalConfig
 from slapr.config import Config
 from slapr.github import GithubBackend, GithubClient, PullRequest, Review
 from slapr.review_map import ReviewMap
@@ -349,6 +351,44 @@ def test_multiple_approvals(
     slapr.main(config)
 
     assert slack_backend.emojis == expected_emojis
+
+
+def test_approval_config_can_render_multiple_emojis() -> None:
+    messages = [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd")]
+    slack_backend = MockSlackBackend(messages=messages, target_message=messages[0], reactions=[])
+    github_backend = MockGithubBackend(
+        reviews=[Review(state="approved", user=_user("alice"))],
+        event=MOCK_EVENT,
+        pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
+    )
+    approval_config = ApprovalConfig(
+        {
+            ApprovalState.PARTIAL: ["test_partially_approved", "test_one_approval"],
+            ApprovalState.COMPLETE: ["test_approved"],
+        }
+    )
+
+    config = Config(
+        slack_client=SlackClient(backend=slack_backend),
+        github_client=GithubClient(backend=github_backend),
+        slack_channel_id="C1234",
+        slapr_bot_user_id="U1234",
+        number_of_approvals_required=2,
+        emoji_review_started="test_review_started",
+        emoji_approved="test_approved",
+        emoji_needs_change="test_needs_change",
+        emoji_merged="test_merged",
+        emoji_closed="test_closed",
+        emoji_commented="test_commented",
+        approval_config=approval_config,
+    )
+    slapr.main(config)
+
+    assert slack_backend.emojis == [
+        "test_review_started",
+        "test_partially_approved",
+        "test_one_approval",
+    ]
 
 
 @pytest.mark.parametrize(

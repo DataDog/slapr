@@ -37,6 +37,56 @@ Slack API Token with following permissions
 | `SLAPR_EMOJI_MERGED`         | The PR is merged.                                            |
 | `SLAPR_EMOJI_CLOSED`         | The PR is closed.                                            |
 
+## Approval configuration
+
+Use the optional `approval-config` input when you want to map an approval state
+to multiple emojis or suppress an individual state. The built-in approval count
+is normalized into these states:
+
+| state       | description                                                   |
+|-------------|---------------------------------------------------------------|
+| `none`      | No applicable approval, comment, or change request exists.    |
+| `commented` | A comment-only review exists and no stronger state applies.    |
+| `partial`   | At least one approval exists, but the threshold is not met.    |
+| `complete`  | The configured approval threshold is met.                      |
+| `blocked`   | An applicable reviewer has requested changes.                  |
+| `unknown`   | Approval progress cannot be determined by an evaluation source. |
+
+Create a versioned YAML file whose values are ordered lists of Slack emoji names:
+
+```yaml
+# .github/slapr-approvals.yml
+version: 1
+states:
+  none: []
+  commented:
+    - speech_balloon
+  partial:
+    - next_track_button
+    - one
+  complete:
+    - ship
+  blocked:
+    - changes_requested
+  unknown:
+    - question
+```
+
+Then pass the file to the action:
+
+```yaml
+with:
+  approval-config: .github/slapr-approvals.yml
+  number-of-approvals-required: 2
+```
+
+State keys may be omitted or assigned an empty list to suppress their reactions.
+An emoji may only be assigned to one state. When `approval-config` is omitted,
+Slapr translates the existing `emoji-commented`, `emoji-changes-requested`,
+`emoji-partially-approved`, and `emoji-approved` inputs into equivalent rules.
+When it is set, the file replaces those four review-state mappings; lifecycle
+inputs such as `emoji-review-started`, `emoji-merged`, and `emoji-closed` are unchanged.
+
 ## Review Map (multi-channel routing)
 
 By default, slapr posts emoji reactions to a single Slack channel (`SLACK_CHANNEL_ID`). With the `review-map` input, you can route reactions to different Slack channels based on which GitHub teams are requested for review.

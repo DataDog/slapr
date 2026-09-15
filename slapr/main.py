@@ -43,7 +43,7 @@ def main(config: Config) -> None:
 
     for channel_id, teams in target_channels.items():
 
-        review_emoji = emojis.select(
+        review_emojis = emojis.select(
             teams,
             reviews,
             config,
@@ -51,8 +51,7 @@ def main(config: Config) -> None:
         )
 
         new_emojis = set() if pr.state == "closed" else {config.emoji_review_started}
-        if review_emoji:
-            new_emojis.add(review_emoji)
+        new_emojis.update(review_emojis)
 
         if pr.merged:
             new_emojis.add(config.emoji_merged)

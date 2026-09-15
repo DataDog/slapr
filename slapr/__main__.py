@@ -8,6 +8,7 @@ import os
 import github
 import slack_sdk
 
+from .approval_config import ApprovalConfig
 from .config import Config
 from .github import GithubClient, WebGithubBackend
 from .main import main
@@ -25,6 +26,11 @@ if review_map_path:
         slack_client=slack_client,
         default_channel_id=os.environ["SLACK_CHANNEL_ID"],
     )
+
+approval_config = None
+approval_config_path = os.environ.get("SLAPR_APPROVAL_CONFIG")
+if approval_config_path:
+    approval_config = ApprovalConfig.load(approval_config_path)
 
 config = Config(
     slack_client=slack_client,
@@ -46,6 +52,7 @@ config = Config(
     emoji_commented=os.environ.get("SLAPR_EMOJI_COMMENTED", "comment"),
     emoji_partially_approved=os.environ.get("SLAPR_EMOJI_PARTIALLY_APPROVED") or None,
     review_map=review_map,
+    approval_config=approval_config,
 )
 
 main(config)
