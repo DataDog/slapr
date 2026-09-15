@@ -24,6 +24,21 @@ def _make_slack_client(channel_map):
     return SlackClient(backend=MockSlackBackendForResolve(channel_map))
 
 
+def test_format_channel_with_name_and_teams():
+    review_map = ReviewMap(
+        team_to_channel={
+            "@datadog/agent-apm": "C_APM",
+            "@datadog/agent-build": "C_BUILD",
+        },
+        default_channel_id="C_DEFAULT",
+        channel_id_to_name={"C_APM": "apm-review"},
+    )
+
+    assert review_map.format_channel("C_APM") == "#apm-review (C_APM) [@datadog/agent-apm]"
+    assert review_map.format_channel("C_BUILD") == "C_BUILD [@datadog/agent-build]"
+    assert review_map.format_channel("C_UNKNOWN") == "C_UNKNOWN"
+
+
 def test_load_with_review_name_and_id():
     """When review has both name and id, id is used directly (no API call)."""
     yaml_content = """
@@ -48,6 +63,10 @@ def test_load_with_review_name_and_id():
     assert review_map.team_to_channel == {
         "@datadog/agent-apm": "C_APM",
         "@datadog/agent-build": "C_BUILD",
+    }
+    assert review_map.channel_id_to_name == {
+        "C_APM": "apm-review",
+        "C_BUILD": "agent-build-review",
     }
     assert review_map.default_channel_id == "C_DEFAULT"
 
@@ -74,6 +93,10 @@ def test_load_review_name_only_resolves_via_api():
     assert review_map.team_to_channel == {
         "@datadog/agent-apm": "C_APM",
         "@datadog/agent-build": "C_BUILD",
+    }
+    assert review_map.channel_id_to_name == {
+        "C_APM": "apm-review",
+        "C_BUILD": "agent-build-review",
     }
 
 
