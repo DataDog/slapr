@@ -130,6 +130,9 @@ def _apply_emojis_to_channel(
     pr_url: str,
     channel_id: str,
 ) -> None:
+    # Statuses are selected as usual, then disabled ones are hidden here, so that hiding e.g.
+    # `changes_requested` never makes `approved` appear in its place.
+    new_emojis = new_emojis - config.disabled_emojis
     channel_label = _channel_label(config, channel_id)
     try:
         timestamp = slack.find_timestamp_of_review_requested_message(pr_url=pr_url, channel_id=channel_id)

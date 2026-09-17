@@ -8,11 +8,14 @@ import os
 import github
 import slack_sdk
 
+from . import statuses
 from .config import Config
 from .github import GithubClient, WebGithubBackend
 from .main import main
 from .review_map import ReviewMap
 from .slack import SlackClient, WebSlackBackend
+
+disabled_statuses = statuses.parse_disabled(os.environ.get("SLAPR_DISABLED_STATUSES"))
 
 slack_backend = WebSlackBackend(client=slack_sdk.WebClient(os.environ["SLACK_API_TOKEN"]))
 slack_client = SlackClient(backend=slack_backend)
@@ -46,6 +49,7 @@ config = Config(
     emoji_commented=os.environ.get("SLAPR_EMOJI_COMMENTED", "comment"),
     emoji_partially_approved=os.environ.get("SLAPR_EMOJI_PARTIALLY_APPROVED") or None,
     review_map=review_map,
+    disabled_statuses=disabled_statuses,
 )
 
 main(config)

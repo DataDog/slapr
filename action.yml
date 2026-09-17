@@ -47,6 +47,14 @@ inputs:
     description: 'Emoji name for comment-only review'
     required: false
     default: 'comment'
+  disabled-statuses:
+    description: >-
+      Comma-separated list of statuses that should never be shown as emojis.
+      Valid names: review-started, partially-approved, approved, changes-requested, commented, merged, closed.
+      Statuses are still computed normally; disabled ones are simply hidden, so hiding one status
+      never causes another to appear in its place. Defaults to none.
+    required: false
+    default: ''
 runs:
   using: 'docker'
   image: 'Dockerfile'
@@ -64,3 +72,4 @@ runs:
     SLAPR_EMOJI_MERGED: ${{ inputs.emoji-merged }}
     SLAPR_EMOJI_CLOSED: ${{ inputs.emoji-closed }}
     SLAPR_EMOJI_COMMENTED: ${{ inputs.emoji-commented }}
+    SLAPR_DISABLED_STATUSES: ${{ inputs.disabled-statuses }}

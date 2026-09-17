@@ -36,6 +36,20 @@ Slack API Token with following permissions
 | `SLAPR_EMOJI_COMMENTED`      | A review has been submitted with comment only.               |
 | `SLAPR_EMOJI_MERGED`         | The PR is merged.                                            |
 | `SLAPR_EMOJI_CLOSED`         | The PR is closed.                                            |
+| `SLAPR_DISABLED_STATUSES`    | Comma-separated statuses to hide (see below).                |
+
+## Disabling statuses
+
+Use the optional `disabled-statuses` input to hide some statuses:
+
+```yaml
+with:
+  disabled-statuses: review-started, commented
+```
+
+Valid names: `review-started`, `partially-approved`, `approved`, `changes-requested`, `commented`, `merged`, `closed`. Unknown names make the action fail.
+
+Statuses are computed as usual and disabled ones are simply hidden, so hiding `changes-requested` never shows `approved` instead.
 
 ## Review Map (multi-channel routing)
 
@@ -94,6 +108,7 @@ jobs:
         number-of-approvals-required: 2
         emoji-partially-approved: next_track_button # :next_track_button:
         emoji-approved: ship # :ship:
+        disabled-statuses: commented # optional
 ```
 
 `emoji-partially-approved` is opt-in. When it is not configured, approvals below
