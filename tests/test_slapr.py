@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Set
 import pytest
 
 import slapr
-from slapr.config import Config
+from slapr.config import Config, parse_channel_ids
 from slapr.github import GithubBackend, GithubClient, PullRequest, Review
 from slapr.review_map import ReviewMap
 from slapr.slack import Message, Reaction, SlackBackend, SlackChannelAccessError, SlackClient
@@ -525,6 +525,62 @@ def test_review_with_review_map_falls_back_to_default():
     assert slack_backend.emojis == ["test_review_started", "test_approved"]
 
 
+def test_review_with_review_map_ignores_extra_channel_ids_on_no_match():
+    """Regression: with review-map set and no team match, the multi-ID list must
+    NOT fan out — only the single default channel is targeted."""
+    messages = [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="ts-default")]
+
+    event_no_teams = {
+        "pull_request": {
+            "number": 42,
+            "html_url": "https://github.com/example/repo/pull/42",
+            "head": {"repo": {"fork": False, "owner": {"login": "datadog"}}},
+            "requested_teams": [],
+        },
+        "review": {
+            "user": {"login": "bob"},
+        },
+    }
+
+    slack_backend = MockSlackBackend(
+        messages=messages,
+        target_message=messages[0],
+        reactions=[],
+        channel_reactions={"C_DEFAULT": [], "C_A": [], "C_B": []},
+    )
+    github_backend = MockGithubBackend(
+        reviews=[Review(state="approved", user=_user("bob"))],
+        event=event_no_teams,
+        pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
+    )
+
+    review_map = ReviewMap(
+        team_to_channel={"@datadog/agent-apm": "C_APM"},
+        default_channel_id="C_DEFAULT",
+    )
+
+    config = Config(
+        slack_client=SlackClient(backend=slack_backend),
+        github_client=GithubClient(backend=github_backend),
+        slack_channel_id="C_DEFAULT",
+        slack_channel_ids=["C_A", "C_B"],
+        slapr_bot_user_id="U1234",
+        number_of_approvals_required=1,
+        emoji_review_started="test_review_started",
+        emoji_approved="test_approved",
+        emoji_needs_change="test_needs_change",
+        emoji_merged="test_merged",
+        emoji_closed="test_closed",
+        emoji_commented="test_commented",
+        review_map=review_map,
+    )
+    slapr.main(config)
+
+    assert slack_backend.channel_emojis["C_DEFAULT"] == ["test_review_started", "test_approved"]
+    assert slack_backend.channel_emojis.get("C_A", []) == []
+    assert slack_backend.channel_emojis.get("C_B", []) == []
+
+
 def test_merge_with_review_map_targets_requested_team_channels():
     """On merge, emoji is applied to channels of all teams that were ever requested."""
     messages_apm = [Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="ts-apm")]
@@ -740,3 +796,153 @@ def test_not_in_channel_logs_channel_name_and_raises(capsys):
     assert exc_info.value.channel_id == "C_BLOCKED"
     assert slack_backend.channel_emojis["C_OK"] == ["test_approved", "test_merged"]
     assert slack_backend.channel_emojis.get("C_BLOCKED", []) == []
+
+
+# --- Multi-channel (SLACK_CHANNEL_IDS) tests ---
+
+
+def _multi_channel_config(slack_backend, github_backend, channel_ids: List[str]) -> Config:
+    return Config(
+        slack_client=SlackClient(backend=slack_backend),
+        github_client=GithubClient(backend=github_backend),
+        slack_channel_id=channel_ids[0],
+        slack_channel_ids=channel_ids,
+        slapr_bot_user_id="U1234",
+        number_of_approvals_required=1,
+        emoji_review_started="test_review_started",
+        emoji_approved="test_approved",
+        emoji_needs_change="test_needs_change",
+        emoji_merged="test_merged",
+        emoji_closed="test_closed",
+        emoji_commented="test_commented",
+    )
+
+
+def test_multiple_channels_all_get_emojis():
+    """When multiple channel IDs are configured, each channel containing the PR
+    link gets the same emoji reactions."""
+    messages = [
+        Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd"),
+    ]
+    slack_backend = MockSlackBackend(
+        messages=messages,
+        target_message=messages[0],
+        reactions=[],
+        channel_messages={
+            "C_ONE": messages,
+            "C_TWO": messages,
+        },
+        channel_reactions={"C_ONE": [], "C_TWO": []},
+    )
+    github_backend = MockGithubBackend(
+        reviews=[Review(state="approved", user=_user("alice"))],
+        event=MOCK_EVENT,
+        pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
+    )
+    slapr.main(_multi_channel_config(slack_backend, github_backend, ["C_ONE", "C_TWO"]))
+
+    assert slack_backend.channel_emojis["C_ONE"] == ["test_review_started", "test_approved"]
+    assert slack_backend.channel_emojis["C_TWO"] == ["test_review_started", "test_approved"]
+
+
+def test_multiple_channels_skips_channel_without_pr_link():
+    """A configured channel that does not contain the PR link gets no emoji."""
+    messages = [
+        Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd"),
+    ]
+    other = [Message(text="Unrelated chatter, no PR link here", timestamp="yyyy-mm-dd")]
+    slack_backend = MockSlackBackend(
+        messages=messages,
+        target_message=messages[0],
+        reactions=[],
+        channel_messages={
+            "C_ONE": messages,
+            "C_TWO": other,
+        },
+        channel_reactions={"C_ONE": [], "C_TWO": []},
+    )
+    github_backend = MockGithubBackend(
+        reviews=[Review(state="approved", user=_user("alice"))],
+        event=MOCK_EVENT,
+        pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
+    )
+    slapr.main(_multi_channel_config(slack_backend, github_backend, ["C_ONE", "C_TWO"]))
+
+    assert slack_backend.channel_emojis["C_ONE"] == ["test_review_started", "test_approved"]
+    assert slack_backend.channel_emojis.get("C_TWO", []) == []
+
+
+def test_multiple_channels_merges_share_review_state():
+    """The reviewer teams are empty in non-review-map mode, so reviews from all
+    authors count in each channel."""
+    messages = [
+        Message(text="Need review <https://github.com/example/repo/pull/42>", timestamp="yyyy-mm-dd"),
+    ]
+    reviews = [
+        Review(state="approved", user=_user("alice")),
+        Review(state="approved", user=_user("bob")),
+    ]
+    slack_backend = MockSlackBackend(
+        messages=messages,
+        target_message=messages[0],
+        reactions=[],
+        channel_messages={"C_ONE": messages, "C_TWO": messages},
+        channel_reactions={"C_ONE": [], "C_TWO": []},
+    )
+    github_backend = MockGithubBackend(
+        reviews=reviews,
+        event=MOCK_EVENT,
+        pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
+    )
+    config = _multi_channel_config(slack_backend, github_backend, ["C_ONE", "C_TWO"])
+    config = config._replace(number_of_approvals_required=2)
+    slapr.main(config)
+
+    assert slack_backend.channel_emojis["C_ONE"] == ["test_review_started", "test_approved"]
+    assert slack_backend.channel_emojis["C_TWO"] == ["test_review_started", "test_approved"]
+
+
+@pytest.mark.parametrize(
+    "raw, default, expected",
+    [
+        pytest.param("C_ONE,C_TWO,C_THREE", "C_DEFAULT", ["C_ONE", "C_TWO", "C_THREE"], id="simple"),
+        pytest.param("C_ONE  C_TWO", "C_DEFAULT", ["C_ONE", "C_TWO"], id="space-separated"),
+        pytest.param("C_ONE, C_TWO\n C_THREE", "C_DEFAULT", ["C_ONE", "C_TWO", "C_THREE"], id="separators"),
+        pytest.param("C_ONE , , C_TWO", "C_DEFAULT", ["C_ONE", "C_TWO"], id="empty-segments"),
+        pytest.param("", "C_DEFAULT", ["C_DEFAULT"], id="empty-raw"),
+        pytest.param("   ,  ,  ", "C_DEFAULT", ["C_DEFAULT"], id="only-separators"),
+        pytest.param("C_ONE,C_ONE", "C_DEFAULT", ["C_ONE", "C_ONE"], id="duplicates-passthrough"),
+    ],
+)
+def test_parse_channel_ids(raw: str, default: str, expected: List[str]) -> None:
+    assert parse_channel_ids(raw, default) == expected
+
+
+def test_multiple_channels_remove_path():
+    """A channel with an existing stale emoji gets the removal computed per
+    channel: stale changes_requested removed there, unaffected elsewhere."""
+    review_started_msg = Message(
+        text="review started <https://github.com/example/repo/pull/42>", timestamp="ts1"
+    )
+    stale_msg = Message(
+        text="changes requested on PR 42 <https://github.com/example/repo/pull/42>", timestamp="ts2"
+    )
+    slack_backend = MockSlackBackend(
+        messages=review_started_msg,
+        target_message=review_started_msg,
+        reactions=[],
+        channel_messages={"C_ONE": [review_started_msg], "C_TWO": [stale_msg]},
+        channel_reactions={
+            "C_ONE": [],
+            "C_TWO": [Reaction(emoji="test_needs_change", user_ids=["U1234"])],
+        },
+    )
+    github_backend = MockGithubBackend(
+        reviews=[Review(state="approved", user=_user("alice"))],
+        event=MOCK_EVENT,
+        pr=PullRequest(state="open", merged=False, mergeable_state="clean"),
+    )
+    slapr.main(_multi_channel_config(slack_backend, github_backend, ["C_ONE", "C_TWO"]))
+
+    assert slack_backend.channel_emojis["C_ONE"] == ["test_review_started", "test_approved"]
+    assert slack_backend.channel_emojis["C_TWO"] == ["test_review_started", "test_approved"]
