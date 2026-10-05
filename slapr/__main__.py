@@ -8,7 +8,7 @@ import os
 import github
 import slack_sdk
 
-from .config import Config
+from .config import Config, parse_channel_ids
 from .github import GithubClient, WebGithubBackend
 from .main import main
 from .review_map import ReviewMap
@@ -26,6 +26,10 @@ if review_map_path:
         default_channel_id=os.environ["SLACK_CHANNEL_ID"],
     )
 
+slack_channel_id = os.environ["SLACK_CHANNEL_ID"]
+slack_channel_ids = parse_channel_ids(
+    os.environ.get("SLACK_CHANNEL_IDS", ""), default=slack_channel_id
+)
 config = Config(
     slack_client=slack_client,
     github_client=GithubClient(
@@ -35,7 +39,8 @@ config = Config(
             repo=os.environ["GITHUB_REPOSITORY"],
         )
     ),
-    slack_channel_id=os.environ["SLACK_CHANNEL_ID"],
+    slack_channel_id=slack_channel_id,
+    slack_channel_ids=slack_channel_ids,
     slapr_bot_user_id=os.environ["SLAPR_BOT_USER_ID"],
     number_of_approvals_required=max(1, int(os.environ.get("SLAPR_NUMBER_OF_APPROVALS_REQUIRED", 1))),
     emoji_review_started=os.environ.get("SLAPR_EMOJI_REVIEW_STARTED", "review_started"),

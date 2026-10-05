@@ -10,6 +10,9 @@ inputs:
   slack-channel-id:
     description: 'Default Slack channel ID for emoji reactions'
     required: true
+  slack-channel-ids:
+    description: 'Additional Slack channel IDs to search for PR links (comma/whitespace-separated)'
+    required: false
   bot-user-id:
     description: 'Slack user ID of the slapr bot'
     required: true
@@ -54,6 +57,7 @@ runs:
     GITHUB_TOKEN: ${{ inputs.github-token }}
     SLACK_API_TOKEN: ${{ inputs.slack-api-token }}
     SLACK_CHANNEL_ID: ${{ inputs.slack-channel-id }}
+    SLACK_CHANNEL_IDS: ${{ inputs.slack-channel-ids }}
     SLAPR_BOT_USER_ID: ${{ inputs.bot-user-id }}
     SLAPR_REVIEW_MAP: ${{ inputs.review-map }}
     SLAPR_NUMBER_OF_APPROVALS_REQUIRED: ${{ inputs.number-of-approvals-required }}

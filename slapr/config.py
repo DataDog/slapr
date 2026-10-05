@@ -3,11 +3,21 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/)
 # Copyright 2023-present Datadog, Inc.
 
-from typing import Callable, NamedTuple, Optional
+import re
+from typing import Callable, List, NamedTuple, Optional
 
 from .github import GithubClient
 from .review_map import ReviewMap
 from .slack import SlackClient
+
+
+def parse_channel_ids(raw: str, default: str) -> List[str]:
+    """Parse a comma/whitespace-separated list of Slack channel IDs.
+
+    Falls back to `[default]` when `raw` is empty or only separators.
+    """
+    ids = [c for c in re.split(r"[\s,]+", raw) if c]
+    return ids or [default]
 
 
 class Config(NamedTuple):
@@ -27,6 +37,7 @@ class Config(NamedTuple):
     emoji_commented: str
 
     emoji_partially_approved: Optional[str] = None
+    slack_channel_ids: Optional[List[str]] = None
     review_map: Optional[ReviewMap] = None
 
     @property

@@ -39,7 +39,7 @@ Slack API Token with following permissions
 
 ## Review Map (multi-channel routing)
 
-By default, slapr posts emoji reactions to a single Slack channel (`SLACK_CHANNEL_ID`). With the `review-map` input, you can route reactions to different Slack channels based on which GitHub teams are requested for review.
+By default, slapr posts emoji reactions to one or more Slack channels: set the optional `slack-channel-ids` input to a comma/whitespace-separated list of channel IDs and slapr scans **every** channel listed, replacing the single `slack-channel-id` target when present. With the `review-map` input, you can instead route reactions to different Slack channels based on which GitHub teams are requested for review.
 
 Create a YAML file mapping GitHub teams to Slack channels:
 
@@ -66,7 +66,12 @@ Create a YAML file mapping GitHub teams to Slack channels:
 
 On review events, slapr checks the reviewer's team membership (requires `read:org` scope on the GitHub token) and posts to the matching channel. On merge/close events, it uses the GitHub Timeline API to find all teams that were ever requested and posts to each of their channels.
 
-When `review-map` is not set, behavior is identical to before (single channel).
+When `review-map` is not set, slapr posts to **every** channel listed in the
+`slack-channel-ids` input. This input accepts a comma- and/or
+whitespace-separated list of Slack channel IDs; if unset, it falls back to
+`slack-channel-id` (default: a single channel).
+When `review-map` is set, `slack-channel-ids` is ignored — team routing takes
+precedence and `slack-channel-id` remains the fallback for teams not in the map.
 
 **Note:** Team membership checks require the `read:org` scope. The default `GITHUB_TOKEN` does not have this — you need a PAT or GitHub App token.
 
