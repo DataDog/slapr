@@ -39,7 +39,7 @@ def main(config: Config) -> None:
         target_channels = _resolve_target_channels(config, requested_teams, pr, reviewer)
     else:
         requested_teams = []
-        target_channels = {config.slack_channel_id: []}
+        target_channels = {channel_id: [] for channel_id in config.slack_channel_ids or [config.slack_channel_id]}
 
     for channel_id, teams in target_channels.items():
 
